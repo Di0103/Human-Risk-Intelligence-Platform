@@ -637,16 +637,15 @@ class LocalStorageDb {
     return `${this.prefix}${norm}`;
   }
 
-  // Ensure initial clean 0-record slate is established for new browsers/sessions
+  // Ensure initial clean 0-record slate is established for new browsers/sessions (Auto-seeding PERMANENTLY DISABLED)
   ensureInitialized() {
     if (typeof window === "undefined" || !window.localStorage) return;
 
-    // Check if the clean slate version has been established
-    const isCleanSlate = window.localStorage.getItem(`${this.prefix}clean_slate_v1`);
+    // Strict 0-records enforcement: purge any legacy auto-seeded mock data from prior builds
+    const isCleanSlate = window.localStorage.getItem(`${this.prefix}strict_zero_slate_v3`);
     if (!isCleanSlate) {
-      // Clean slate initialization: 0 records across all operational collections
       this.clearToEmptySlate();
-      window.localStorage.setItem(`${this.prefix}clean_slate_v1`, "true");
+      window.localStorage.setItem(`${this.prefix}strict_zero_slate_v3`, "true");
       window.localStorage.setItem(`${this.prefix}seeded`, "false");
     }
   }
@@ -686,7 +685,7 @@ class LocalStorageDb {
     this.notify("all");
   }
 
-  // Seed default enterprise data for all collections (only triggered explicitly by user action)
+  // Seed default enterprise data for all collections (ONLY on explicit manual request from Profile page)
   seedDefaults() {
     if (typeof window === "undefined" || !window.localStorage) return;
 
@@ -709,7 +708,7 @@ class LocalStorageDb {
     );
   }
 
-  // Read collection: defaults strictly to empty [] (0 records) unless explicitly seeded/saved
+  // Read collection: strictly returns [] (0 records) if missing or empty, NO auto-injection
   get(collection) {
     if (typeof window === "undefined" || !window.localStorage) {
       return collection === "users" ? DEFAULT_USERS : [];
@@ -718,14 +717,14 @@ class LocalStorageDb {
     const key = this.getKey(collection);
     const raw = window.localStorage.getItem(key);
     if (!raw) {
-      // Clean 0-record default for operational data; only users collection gets initial auth accounts
-      const initial = collection === "users" ? DEFAULT_USERS : [];
-      window.localStorage.setItem(key, JSON.stringify(initial));
-      return initial;
+      // If collection does not exist in localStorage, return empty array [] (0 records)
+      // Only users collection gets default authentication accounts so login works
+      return collection === "users" ? DEFAULT_USERS : [];
     }
 
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       console.error(`Error parsing localStorage key ${key}:`, e);
       return [];
