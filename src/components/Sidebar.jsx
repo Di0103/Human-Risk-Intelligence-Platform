@@ -1,9 +1,3 @@
-function Sidebar() {
-  return (
-    <div>
-      <h2>Sidebar</h2>
-    </div>
-  );
-}
+import Sidebar from "./layout/Sidebar";
 
 export default Sidebar;

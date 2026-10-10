@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment Variables & Deployment Secrets
+.env
+.env.*
+!.env.example
+
+# Vercel Project Cache
+.vercel
+
+.vercel

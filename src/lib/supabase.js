@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { localStorageDb } from "../utils/localStorageDb";
 
-const supabaseUrl = 'https://ttowsqoehnciwxcrueav.supabase.co/rest/v1/';
-const supabaseAnonKey = 'sb_publishable_2yqCtDIRCaFx9HKfFgRJmQ_Xg-pqTJj';
-
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+export const supabase = localStorageDb;
+export default localStorageDb;
