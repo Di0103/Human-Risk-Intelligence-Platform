@@ -15,6 +15,12 @@ import {
   FiActivity,
   FiLayers,
   FiUsers,
+  FiRadio,
+  FiCpu,
+  FiZap,
+  FiCrosshair,
+  FiEye,
+  FiClock,
 } from "react-icons/fi";
 
 import {
@@ -133,6 +139,18 @@ const Dashboard = () => {
   const [complianceGapsList, setComplianceGapsList] = useState([]);
   const [riskCategoryData, setRiskCategoryData] = useState([]);
   const [deptPolicyRateData, setDeptPolicyRateData] = useState([]);
+
+  // Threat Intelligence & Human Risk Exposure Telemetry State
+  const [telemetry, setTelemetry] = useState({
+    hreiScore: 0,
+    threatLevel: "LOW",
+    phishingVector: 0,
+    identityVector: 0,
+    statutoryVector: 0,
+    dataPrivacyVector: 0,
+    signals: [],
+    lastScanned: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  });
 
   // ----------------------------------------------------------
   // STATS
@@ -317,6 +335,102 @@ const Dashboard = () => {
         (a) => !a.result || a.result === "Pending" || !a.status || a.status === "Pending"
       );
       setPendingAssessments(pendingAss.slice(0, 10));
+
+      // Threat Intelligence Telemetry & Human Risk Exposure Index (HREI)
+      const failedAssessments = allAssessments.filter(
+        (a) => a.result === "Fail" || (Number(a.score) < 70 && a.score !== undefined)
+      );
+      const assessmentFailureRate = allAssessments.length > 0
+        ? Math.round((failedAssessments.length / allAssessments.length) * 100)
+        : 0;
+
+      let exposurePoints = 0;
+      exposurePoints += Math.min(40, criticalRisks.length * 15);
+      exposurePoints += Math.min(30, Math.round(assessmentFailureRate * 0.3));
+      exposurePoints += Math.min(20, gaps.length * 4);
+      if (allPolicies.length > 0) {
+        exposurePoints += Math.min(10, Math.round((100 - policyComplianceRate) * 0.1));
+      }
+
+      const isCleanEmpty = allRisks.length === 0 && allAssessments.length === 0 && allPolicies.length === 0;
+      const hreiScore = isCleanEmpty ? 0 : Math.min(100, Math.max(0, exposurePoints));
+
+      let threatLevel = "LOW";
+      if (hreiScore >= 75) threatLevel = "CRITICAL";
+      else if (hreiScore >= 50) threatLevel = "ELEVATED";
+      else if (hreiScore >= 25) threatLevel = "GUARDED";
+      else threatLevel = "LOW";
+
+      const phishingVector = allAssessments.length > 0
+        ? Math.min(100, Math.max(10, assessmentFailureRate + (allTrainings.filter((t) => t.status !== "Completed").length * 15)))
+        : (allRisks.some((r) => (r.category || "").includes("Human")) ? 45 : 0);
+      const identityVector = criticalRisks.length > 0
+        ? Math.min(100, 25 + criticalRisks.length * 20)
+        : (allRisks.length > 0 ? 20 : 0);
+      const statutoryVector = allFrameworks.length > 0
+        ? Math.min(100, Math.round((gaps.length / allFrameworks.length) * 100))
+        : 0;
+      const dataPrivacyVector = allPolicies.length > 0
+        ? Math.max(0, 100 - policyComplianceRate)
+        : 0;
+
+      const signals = [];
+      if (criticalRisks.length > 0) {
+        signals.push({
+          id: "sig-1",
+          type: "CRITICAL",
+          title: "Critical Threat Active",
+          desc: `${criticalRisks[0].title || criticalRisks[0].risk_title || "Identified Threat"} exceeds tolerance threshold.`,
+          time: "Just now",
+        });
+      }
+      if (gaps.length > 0) {
+        signals.push({
+          id: "sig-2",
+          type: "WARNING",
+          title: "Statutory Gap Detected",
+          desc: `${gaps.length} mandatory framework clauses lack active implemented security controls.`,
+          time: "Live Telemetry",
+        });
+      }
+      if (failedAssessments.length > 0) {
+        signals.push({
+          id: "sig-3",
+          type: "WARNING",
+          title: "Human Susceptibility Spike",
+          desc: `${failedAssessments.length} assessment failures logged in workforce phishing simulations.`,
+          time: "Threat Radar",
+        });
+      }
+      if (policyComplianceRate < 100 && allPolicies.length > 0) {
+        signals.push({
+          id: "sig-4",
+          type: "INFO",
+          title: "Policy Attestation Notice",
+          desc: `Workforce policy acknowledgement is currently at ${policyComplianceRate}%.`,
+          time: "Active Signal",
+        });
+      }
+      if (signals.length === 0) {
+        signals.push({
+          id: "sig-clean",
+          type: "SUCCESS",
+          title: "Hardened Baseline Posture",
+          desc: "Clean workspace initialized with 0 active threat exposure signals and zero-trust hygiene.",
+          time: "Continuous Monitor",
+        });
+      }
+
+      setTelemetry({
+        hreiScore,
+        threatLevel,
+        phishingVector,
+        identityVector,
+        statutoryVector,
+        dataPrivacyVector,
+        signals,
+        lastScanned: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      });
     } catch (error) {
       console.error("Dashboard fetch error:", error);
     }
@@ -613,6 +727,229 @@ const Dashboard = () => {
         <span className="text-xs font-mono text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg w-fit">
           {new Date().toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
         </span>
+      </div>
+
+      {/* ===================================================
+          THREAT INTELLIGENCE & HUMAN RISK EXPOSURE TELEMETRY
+      ==================================================== */}
+      <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 shadow-xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/20 space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl relative">
+              <FiRadio className="w-5 h-5 animate-pulse" />
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-white tracking-tight">
+                  Real-Time Threat Intelligence & Human Risk Exposure Telemetry
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                  Live Radar
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Continuous social engineering vulnerability assessment, statutory gap radar, and workforce security signals.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700 flex items-center gap-1.5">
+              <FiClock className="text-indigo-400" />
+              <span>Scanned {telemetry.lastScanned}</span>
+            </span>
+            <button
+              type="button"
+              onClick={fetchDashboard}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold transition"
+            >
+              <FiZap className="text-xs" />
+              <span>Simulate Telemetry Scan</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Telemetry Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Card 1: Human Risk Exposure Index (HREI) Gauge (4 cols) */}
+          <div className="lg:col-span-4 bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <FiCrosshair className="text-indigo-400" /> Human Risk Exposure Index (HREI)
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                  telemetry.threatLevel === "CRITICAL"
+                    ? "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse"
+                    : telemetry.threatLevel === "ELEVATED"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    : telemetry.threatLevel === "GUARDED"
+                    ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                }`}
+              >
+                {telemetry.threatLevel} Threat
+              </span>
+            </div>
+
+            <div className="my-3 flex items-baseline gap-2">
+              <span
+                className={`text-4xl font-mono font-black ${
+                  telemetry.hreiScore >= 75
+                    ? "text-rose-400"
+                    : telemetry.hreiScore >= 50
+                    ? "text-amber-400"
+                    : telemetry.hreiScore >= 25
+                    ? "text-blue-400"
+                    : "text-emerald-400"
+                }`}
+              >
+                {telemetry.hreiScore}
+              </span>
+              <span className="text-xs text-slate-500 font-mono">/ 100</span>
+              <span className="text-xs text-slate-400 ml-2 font-medium">
+                {telemetry.hreiScore === 0 ? "Hardened Baseline (0 Records)" : "Composite Vulnerability Score"}
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-700 ${
+                    telemetry.hreiScore >= 75
+                      ? "bg-rose-500"
+                      : telemetry.hreiScore >= 50
+                      ? "bg-amber-500"
+                      : telemetry.hreiScore >= 25
+                      ? "bg-blue-500"
+                      : "bg-emerald-500"
+                  }`}
+                  style={{ width: `${Math.max(4, telemetry.hreiScore)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <span>0 (Hardened)</span>
+                <span>50 (Elevated)</span>
+                <span>100 (Critical)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: 4 Active Threat Vector Gauges (4 cols) */}
+          <div className="lg:col-span-4 bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              Active Threat Vectors & Telemetry Gauges
+            </span>
+
+            {/* Vector 1 */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-300 font-medium">1. Phishing & Social Engineering</span>
+                <span className="font-mono text-slate-300">{telemetry.phishingVector}%</span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-rose-500 transition-all duration-500"
+                  style={{ width: `${telemetry.phishingVector}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Vector 2 */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-300 font-medium">2. Identity & Privileged Access Drift</span>
+                <span className="font-mono text-slate-300">{telemetry.identityVector}%</span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 transition-all duration-500"
+                  style={{ width: `${telemetry.identityVector}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Vector 3 */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-300 font-medium">3. Statutory Non-Compliance Penalty</span>
+                <span className="font-mono text-slate-300">{telemetry.statutoryVector}%</span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 transition-all duration-500"
+                  style={{ width: `${telemetry.statutoryVector}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Vector 4 */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-300 font-medium">4. Shadow IT & Data Exfiltration Surface</span>
+                <span className="font-mono text-slate-300">{telemetry.dataPrivacyVector}%</span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${telemetry.dataPrivacyVector}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Live Threat Telemetry Signals Stream (4 cols) */}
+          <div className="lg:col-span-4 bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <FiEye className="text-indigo-400" /> Live Telemetry Feed
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {telemetry.signals.length} Signals Active
+              </span>
+            </div>
+
+            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+              {telemetry.signals.map((sig) => (
+                <div
+                  key={sig.id}
+                  className="p-2 rounded-lg bg-slate-900 border border-slate-800/80 flex items-start gap-2 text-xs"
+                >
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 mt-0.5 ${
+                      sig.type === "CRITICAL"
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                        : sig.type === "WARNING"
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                        : sig.type === "SUCCESS"
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        : "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                    }`}
+                  >
+                    {sig.type}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-200 truncate">{sig.title}</p>
+                    <p className="text-[11px] text-slate-400 leading-tight mt-0.5 line-clamp-2">
+                      {sig.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-900 mt-2 flex items-center justify-between text-[10px] text-slate-500">
+              <span>Telemetry Gateway: Local Enclave</span>
+              <span className="text-emerald-400 font-medium">● Monitoring Active</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ===================================================

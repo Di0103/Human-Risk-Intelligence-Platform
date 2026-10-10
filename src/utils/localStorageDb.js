@@ -430,6 +430,75 @@ export const DEFAULT_CONTROL_MAPPINGS = [
   { id: "map-7", framework_id: "fw-10-1", requirement_id: "fw-10-1", control_id: "ctrl-10", notes: "Mapped via ISO 27001 Baseline" },
 ];
 
+export const DEFAULT_POLICY_CONTROL_MAPPINGS = [
+  { id: "pcm-1", policy_id: 1, control_id: "ctrl-1", notes: "InfoSec policy mandates Policies for information security" },
+  { id: "pcm-2", policy_id: 1, control_id: "ctrl-7", notes: "InfoSec policy mandates Privileged access rights" },
+  { id: "pcm-3", policy_id: 1, control_id: "ctrl-8", notes: "InfoSec policy requires Protection against malware" },
+  { id: "pcm-4", policy_id: 2, control_id: "ctrl-7", notes: "Access Control policy requires Privileged access governance" },
+  { id: "pcm-5", policy_id: 2, control_id: "ctrl-2", notes: "Access Control policy aligns with Threat intelligence" },
+  { id: "pcm-6", policy_id: 3, control_id: "ctrl-1", notes: "Privacy policy linked to InfoSec policies" },
+  { id: "pcm-7", policy_id: 3, control_id: "ctrl-10", notes: "Privacy policy mandates Cryptography" },
+  { id: "pcm-8", policy_id: 4, control_id: "ctrl-2", notes: "Incident Response aligns with Threat intelligence" },
+];
+
+export const DEFAULT_AUDIT_LOGS = [
+  {
+    id: "log-seed-1",
+    timestamp: "2026-04-10T09:30:00.000Z",
+    action: "AUTH_LOGIN_SUCCESS",
+    category: "Authentication",
+    entity: "Session",
+    details: "Administrator authenticated via OTP verification token",
+    actor: "admin@enterprise.com",
+    severity: "info",
+    ip_hash: "127.0.0.1 (Local Verified)",
+  },
+  {
+    id: "log-seed-2",
+    timestamp: "2026-04-10T09:45:12.000Z",
+    action: "POLICY_CONTROL_MAP",
+    category: "Compliance",
+    entity: "policy_control_mappings",
+    details: "Mapped Security Control CTRL-001 to Information Security Policy",
+    actor: "Alex Turner / CISO",
+    severity: "info",
+    ip_hash: "127.0.0.1 (Local Verified)",
+  },
+  {
+    id: "log-seed-3",
+    timestamp: "2026-04-10T10:15:30.000Z",
+    action: "RISK_ASSESSMENT_SCORE",
+    category: "Risk Management",
+    entity: "risks",
+    details: "Automated risk scoring calculated for RSK-001 (Likelihood: 4 × Impact: 4 = Score: 16)",
+    actor: "Threat Intelligence Team",
+    severity: "warning",
+    ip_hash: "127.0.0.1 (Local Verified)",
+  },
+  {
+    id: "log-seed-4",
+    timestamp: "2026-04-10T11:20:00.000Z",
+    action: "SECURITY_CONTROL_UPDATE",
+    category: "Security Controls",
+    entity: "security_controls",
+    details: "Updated Control CTRL-007 status to 'implemented'",
+    actor: "Alex Turner / CISO",
+    severity: "info",
+    ip_hash: "127.0.0.1 (Local Verified)",
+  },
+  {
+    id: "log-seed-5",
+    timestamp: "2026-04-10T12:05:44.000Z",
+    action: "COMPLIANCE_GAP_AUDIT",
+    category: "Compliance",
+    entity: "internal_audits",
+    details: "Automated statutory crosswalk evaluated across ISO 27001, COBIT, and GDPR",
+    actor: "Lead Internal Auditor",
+    severity: "info",
+    ip_hash: "127.0.0.1 (Local Verified)",
+  },
+];
+
 export const DEFAULT_INTERNAL_AUDITS = [
   {
     id: 1,
@@ -607,10 +676,11 @@ const COLLECTION_DEFAULTS = {
   compliance_frameworks: DEFAULT_COMPLIANCE_FRAMEWORKS,
   security_controls: DEFAULT_SECURITY_CONTROLS,
   control_mappings: DEFAULT_CONTROL_MAPPINGS,
+  policy_control_mappings: DEFAULT_POLICY_CONTROL_MAPPINGS,
   internal_audits: DEFAULT_INTERNAL_AUDITS,
   audit_findings: DEFAULT_AUDIT_FINDINGS,
   policy_acknowledgements: [],
-  audit_logs: [],
+  audit_logs: DEFAULT_AUDIT_LOGS,
   users: DEFAULT_USERS,
   profiles: DEFAULT_EMPLOYEES.map((e) => ({
     id: e.id ? `usr-${e.id}` : "usr-admin-01",
@@ -666,6 +736,7 @@ class LocalStorageDb {
       "audit_findings",
       "policy_acknowledgements",
       "control_mappings",
+      "policy_control_mappings",
       "compliance_frameworks",
       "security_controls",
       "audit_logs",
@@ -746,6 +817,83 @@ class LocalStorageDb {
     return items.find((item) => String(item.id) === String(id)) || null;
   }
 
+  // Get currently logged-in actor name safely
+  getCurrentActor() {
+    if (typeof window === "undefined" || !window.localStorage) return "System Admin";
+    try {
+      const raw = window.localStorage.getItem("grc_session");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed?.user?.full_name || parsed?.user?.email || "Authenticated User";
+      }
+    } catch (e) {}
+    return "Administrator";
+  }
+
+  // Get friendly category for collection
+  getCategoryForCollection(collection) {
+    const map = {
+      risks: "Risk Management",
+      risk_register: "Risk Management",
+      policies: "Policy Governance",
+      departments: "Organization",
+      employees: "Workforce",
+      trainings: "Security Awareness",
+      assessments: "Security Assessments",
+      security_controls: "Security Controls",
+      control_mappings: "Compliance Mapping",
+      policy_control_mappings: "Policy Compliance",
+      compliance_frameworks: "Statutory Frameworks",
+      internal_audits: "Internal Audit",
+      audit_findings: "Audit Findings",
+      users: "Authentication",
+      profiles: "User Directory",
+    };
+    return map[collection] || "System Operations";
+  }
+
+  // Structured Audit Log recorder
+  logAudit({
+    action,
+    category = "General",
+    entity = "System",
+    details = "",
+    actor = null,
+    severity = "info",
+  }) {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    try {
+      const key = this.getKey("audit_logs");
+      const raw = window.localStorage.getItem(key);
+      const logs = raw ? JSON.parse(raw) : [];
+      const newLog = {
+        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: new Date().toISOString(),
+        action: action || "SYSTEM_EVENT",
+        category: category || "General",
+        entity: entity || "System",
+        details: details || "Action executed",
+        actor: actor || this.getCurrentActor(),
+        severity: severity || "info",
+        ip_hash: "127.0.0.1 (Local Verified)",
+      };
+      // Keep last 400 entries
+      const updated = [newLog, ...(Array.isArray(logs) ? logs : [])].slice(0, 400);
+      window.localStorage.setItem(key, JSON.stringify(updated));
+      this.notify("audit_logs");
+      return newLog;
+    } catch (e) {
+      console.warn("Audit logging failed:", e);
+    }
+  }
+
+  clearAuditLogs() {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    const key = this.getKey("audit_logs");
+    window.localStorage.setItem(key, JSON.stringify([]));
+    this.notify("audit_logs");
+  }
+
   // Insert item(s)
   insert(collection, itemOrItems) {
     const items = this.get(collection);
@@ -762,6 +910,19 @@ class LocalStorageDb {
 
     const updated = [...prepared, ...items];
     this.set(collection, updated);
+
+    // Audit log (avoid self-logging audit_logs to prevent loop)
+    if (collection !== "audit_logs") {
+      const title = toAdd[0]?.title || toAdd[0]?.name || toAdd[0]?.full_name || toAdd[0]?.code || collection;
+      this.logAudit({
+        action: `CREATE_${collection.toUpperCase()}`,
+        category: this.getCategoryForCollection(collection),
+        entity: collection,
+        details: `Created ${toAdd.length > 1 ? `${toAdd.length} records` : `"${title}"`} in ${collection}`,
+        severity: "info",
+      });
+    }
+
     return prepared.length === 1 ? prepared[0] : prepared;
   }
 
@@ -780,6 +941,17 @@ class LocalStorageDb {
 
     if (matched) {
       this.set(collection, updated);
+
+      if (collection !== "audit_logs") {
+        const title = matched.title || matched.name || matched.full_name || matched.code || `ID ${id}`;
+        this.logAudit({
+          action: `UPDATE_${collection.toUpperCase()}`,
+          category: this.getCategoryForCollection(collection),
+          entity: collection,
+          details: `Updated record "${title}" (ID: ${id}) in ${collection}`,
+          severity: "info",
+        });
+      }
     }
     return matched;
   }
@@ -787,8 +959,21 @@ class LocalStorageDb {
   // Delete item by ID
   delete(collection, id) {
     const items = this.get(collection);
+    const target = items.find((item) => String(item.id) === String(id));
     const updated = items.filter((item) => String(item.id) !== String(id));
     this.set(collection, updated);
+
+    if (collection !== "audit_logs") {
+      const title = target?.title || target?.name || target?.full_name || target?.code || `ID ${id}`;
+      this.logAudit({
+        action: `DELETE_${collection.toUpperCase()}`,
+        category: this.getCategoryForCollection(collection),
+        entity: collection,
+        details: `Deleted record "${title}" (ID: ${id}) from ${collection}`,
+        severity: "warning",
+      });
+    }
+
     return true;
   }
 
@@ -826,6 +1011,16 @@ class LocalStorageDb {
       timestamp: new Date().toISOString(),
     };
     window.localStorage.setItem(`${this.prefix}security_lockout`, JSON.stringify(lockoutPayload));
+
+    // Record critical security audit log entry
+    this.logAudit({
+      action: "SECURITY_AUTOWIPE_LOCKOUT",
+      category: "System Security",
+      entity: "Workspace",
+      details: `Emergency Security Auto-Wipe: ${reason}`,
+      actor: "Security Watcher",
+      severity: "critical",
+    });
 
     // 4. Broadcast security emergency alert
     window.dispatchEvent(

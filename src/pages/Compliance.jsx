@@ -18,6 +18,13 @@ import {
   FiActivity,
   FiTrendingUp,
   FiInfo,
+  FiDownload,
+  FiRefreshCw,
+  FiCheck,
+  FiSliders,
+  FiEye,
+  FiLock,
+  FiCpu,
 } from "react-icons/fi";
 import {
   resolveMultiFrameworkForControl,
@@ -32,8 +39,31 @@ export function Compliance() {
   const [mappings, setMappings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Policy-to-Control Mapping States
+  const [policies, setPolicies] = useState([]);
+  const [policyMappings, setPolicyMappings] = useState([]);
+  const [isPolicyMappingModalOpen, setIsPolicyMappingModalOpen] = useState(false);
+  const [activePolicyForMapping, setActivePolicyForMapping] = useState(null);
+  const [selectedPolicyControlIds, setSelectedPolicyControlIds] = useState([]);
+  const [policyMappingSearchTerm, setPolicyMappingSearchTerm] = useState("");
+  const [isSavingPolicyMappings, setIsSavingPolicyMappings] = useState(false);
+
+  // Audit Logs & Security Trail States
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
+  const [auditSearchTerm, setAuditSearchTerm] = useState("");
+  const [auditCategoryFilter, setAuditCategoryFilter] = useState("all");
+  const [auditSeverityFilter, setAuditSeverityFilter] = useState("all");
+  const [isManualAuditModalOpen, setIsManualAuditModalOpen] = useState(false);
+  const [manualAuditForm, setManualAuditForm] = useState({
+    action: "",
+    category: "Internal Audit",
+    details: "",
+    severity: "info",
+  });
+
   // View & Filter States
-  const [activeTab, setActiveTab] = useState("gaps"); // "gaps" | "controls" | "matrix"
+  const [activeTab, setActiveTab] = useState("gaps"); // "gaps" | "controls" | "matrix" | "policy_mapping" | "audit_trail"
   const [searchTerm, setSearchTerm] = useState("");
   const [gapFilter, setGapFilter] = useState("all"); // "all" | "gaps_only" | "covered_only"
   const [frameworkFilter, setFrameworkFilter] = useState("all"); // "all" | "iso27001" | "cobit" | "it_act" | "gdpr"
@@ -115,9 +145,17 @@ export function Compliance() {
         };
       });
 
+      // Policies & Policy-to-Control Mappings
+      const rawPolicies = localStorageDb.get("policies") || [];
+      const rawPolicyMappings = localStorageDb.get("policy_control_mappings") || [];
+      const rawAuditLogs = localStorageDb.get("audit_logs") || [];
+
       setFrameworks(normalizedFrameworks);
       setControls(normalizedControls);
       setMappings(normalizedMappings);
+      setPolicies(rawPolicies);
+      setPolicyMappings(rawPolicyMappings);
+      setAuditLogs(rawAuditLogs);
     } catch (err) {
       console.error("Error loading compliance data:", err);
       showNotification("error", "Failed to load compliance data: " + err.message);
@@ -137,6 +175,9 @@ export function Compliance() {
         e.detail.collection === "compliance_frameworks" ||
         e.detail.collection === "security_controls" ||
         e.detail.collection === "control_mappings" ||
+        e.detail.collection === "policies" ||
+        e.detail.collection === "policy_control_mappings" ||
+        e.detail.collection === "audit_logs" ||
         e.detail.collection === "all"
       ) {
         fetchComplianceData();
@@ -239,6 +280,315 @@ export function Compliance() {
       readinessPercentage,
     };
   }, [frameworks, controls, reqControlsMap]);
+
+  // Policy -> Array of mapped controls
+  const policyControlsMap = useMemo(() => {
+    const map = {};
+    const controlLookup = new Map();
+
+    controls.forEach((c) => {
+      controlLookup.set(String(c.id).trim(), c);
+      controlLookup.set(c.id, c);
+      if (c.control_code) controlLookup.set(c.control_code, c);
+    });
+
+    policies.forEach((p) => {
+      map[String(p.id)] = [];
+      map[p.id] = map[String(p.id)];
+    });
+
+    policyMappings.forEach((m) => {
+      const polId = String(m.policy_id || "").trim();
+      const ctrlId = String(m.control_id || "").trim();
+      const targetList = map[polId] || (m.policy_id ? map[m.policy_id] : null);
+      const controlObj = controlLookup.get(ctrlId) || (m.control_id ? controlLookup.get(m.control_id) : null);
+
+      if (targetList && controlObj) {
+        if (!targetList.some((existing) => String(existing.id).trim() === String(controlObj.id).trim())) {
+          targetList.push({
+            ...controlObj,
+            mappingId: m.id,
+            notes: m.notes,
+          });
+        }
+      }
+    });
+
+    return map;
+  }, [policies, controls, policyMappings]);
+
+  // Policy Compliance Metrics
+  const policyComplianceMetrics = useMemo(() => {
+    const totalPolicies = policies.length;
+    let coveredPoliciesCount = 0;
+    let totalLinkedControlsCount = 0;
+    let implementedLinkedControlsCount = 0;
+
+    policies.forEach((p) => {
+      const mapped = policyControlsMap[String(p.id)] || policyControlsMap[p.id] || [];
+      if (mapped.length > 0) {
+        coveredPoliciesCount++;
+        mapped.forEach((c) => {
+          totalLinkedControlsCount++;
+          if (c.status === "implemented") {
+            implementedLinkedControlsCount++;
+          }
+        });
+      }
+    });
+
+    const unmappedPoliciesCount = Math.max(0, totalPolicies - coveredPoliciesCount);
+    const overallEnforcementRate = totalLinkedControlsCount > 0
+      ? Math.round((implementedLinkedControlsCount / totalLinkedControlsCount) * 100)
+      : (totalPolicies > 0 && coveredPoliciesCount === 0 ? 0 : 100);
+
+    const policyCoverageRate = totalPolicies > 0
+      ? Math.round((coveredPoliciesCount / totalPolicies) * 100)
+      : 0;
+
+    return {
+      totalPolicies,
+      coveredPoliciesCount,
+      unmappedPoliciesCount,
+      totalLinkedControlsCount,
+      implementedLinkedControlsCount,
+      overallEnforcementRate,
+      policyCoverageRate,
+    };
+  }, [policies, policyControlsMap]);
+
+  // Filtered Audit Logs
+  const filteredAuditLogs = useMemo(() => {
+    return auditLogs.filter((log) => {
+      if (auditSearchTerm.trim()) {
+        const term = auditSearchTerm.toLowerCase();
+        const matches =
+          (log.action || "").toLowerCase().includes(term) ||
+          (log.category || "").toLowerCase().includes(term) ||
+          (log.details || "").toLowerCase().includes(term) ||
+          (log.actor || "").toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      if (auditCategoryFilter !== "all" && log.category !== auditCategoryFilter) {
+        return false;
+      }
+      if (auditSeverityFilter !== "all" && log.severity !== auditSeverityFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [auditLogs, auditSearchTerm, auditCategoryFilter, auditSeverityFilter]);
+
+  // Policy Mapping Handlers
+  const handleOpenPolicyMapping = (policy) => {
+    setActivePolicyForMapping(policy);
+    const mapped = policyControlsMap[String(policy.id)] || policyControlsMap[policy.id] || [];
+    setSelectedPolicyControlIds(mapped.map((c) => c.id));
+    setPolicyMappingSearchTerm("");
+    setIsPolicyMappingModalOpen(true);
+  };
+
+  const handleSavePolicyMappings = () => {
+    if (!activePolicyForMapping) return;
+    setIsSavingPolicyMappings(true);
+
+    try {
+      const polId = String(activePolicyForMapping.id).trim();
+      const allPcm = localStorageDb.get("policy_control_mappings") || [];
+
+      // Remove existing mappings for this policy
+      const remaining = allPcm.filter((m) => String(m.policy_id).trim() !== polId);
+
+      // Add selected controls
+      const newMappings = selectedPolicyControlIds.map((ctrlId, index) => ({
+        id: `pcm-${Date.now()}-${index}`,
+        policy_id: activePolicyForMapping.id,
+        control_id: ctrlId,
+        notes: `Linked via Policy Compliance Console`,
+        created_at: new Date().toISOString(),
+      }));
+
+      const updated = [...newMappings, ...remaining];
+      localStorageDb.set("policy_control_mappings", updated);
+
+      localStorageDb.logAudit({
+        action: "POLICY_CONTROL_MAP",
+        category: "Policy Compliance",
+        entity: "policy_control_mappings",
+        details: `Updated linked controls for policy "${activePolicyForMapping.title || activePolicyForMapping.policy_name}" (${selectedPolicyControlIds.length} controls aligned)`,
+        actor: user?.email || "Admin",
+        severity: "info",
+      });
+
+      showNotification(
+        "success",
+        `Aligned ${selectedPolicyControlIds.length} control(s) to "${activePolicyForMapping.title || activePolicyForMapping.policy_name}"!`
+      );
+      setIsPolicyMappingModalOpen(false);
+      fetchComplianceData();
+    } catch (err) {
+      console.error("Save Policy Mappings Error:", err);
+      showNotification("error", `Failed to save policy linkages: ${err.message}`);
+    } finally {
+      setIsSavingPolicyMappings(false);
+    }
+  };
+
+  const handleUnlinkControlFromPolicy = (policyId, controlId, controlCode) => {
+    if (!window.confirm(`Unlink control ${controlCode} from this policy?`)) return;
+
+    try {
+      const allPcm = localStorageDb.get("policy_control_mappings") || [];
+      const updated = allPcm.filter(
+        (m) => !(String(m.policy_id).trim() === String(policyId).trim() && String(m.control_id).trim() === String(controlId).trim())
+      );
+      localStorageDb.set("policy_control_mappings", updated);
+
+      localStorageDb.logAudit({
+        action: "POLICY_CONTROL_UNLINK",
+        category: "Policy Compliance",
+        entity: "policy_control_mappings",
+        details: `Unlinked control ${controlCode} from policy ID ${policyId}`,
+        severity: "warning",
+      });
+
+      showNotification("success", `Unlinked control ${controlCode}.`);
+      fetchComplianceData();
+    } catch (err) {
+      showNotification("error", "Failed to unlink control: " + err.message);
+    }
+  };
+
+  const handleAutoMapPolicyControls = () => {
+    if (policies.length === 0) {
+      showNotification("error", "No internal policies available to map.");
+      return;
+    }
+
+    try {
+      const allPcm = localStorageDb.get("policy_control_mappings") || [];
+      const autoAdded = [];
+
+      policies.forEach((p) => {
+        const title = (p.title || p.policy_name || "").toLowerCase();
+        let targetCodes = [];
+
+        if (title.includes("access") || title.includes("password")) {
+          targetCodes = ["CTRL-002", "CTRL-007"];
+        } else if (title.includes("privacy") || title.includes("gdpr") || title.includes("data")) {
+          targetCodes = ["CTRL-001", "CTRL-010"];
+        } else if (title.includes("incident") || title.includes("response")) {
+          targetCodes = ["CTRL-002", "CTRL-008"];
+        } else if (title.includes("remote") || title.includes("byod")) {
+          targetCodes = ["CTRL-006", "CTRL-007"];
+        } else {
+          targetCodes = ["CTRL-001", "CTRL-006", "CTRL-007"];
+        }
+
+        controls.forEach((c) => {
+          if (targetCodes.includes(c.control_code)) {
+            const alreadyExists = allPcm.some(
+              (m) => String(m.policy_id) === String(p.id) && String(m.control_id) === String(c.id)
+            );
+            if (!alreadyExists) {
+              autoAdded.push({
+                id: `pcm-auto-${Date.now()}-${p.id}-${c.id}`,
+                policy_id: p.id,
+                control_id: c.id,
+                notes: "Intelligently auto-aligned based on statutory policy taxonomy",
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
+        });
+      });
+
+      const updated = [...autoAdded, ...allPcm];
+      localStorageDb.set("policy_control_mappings", updated);
+
+      localStorageDb.logAudit({
+        action: "POLICY_AUTO_ALIGN",
+        category: "Policy Compliance",
+        entity: "policy_control_mappings",
+        details: `Intelligently auto-aligned ${autoAdded.length} controls across ${policies.length} policies`,
+        severity: "info",
+      });
+
+      showNotification("success", `Auto-aligned ${autoAdded.length} security controls to policies!`);
+      fetchComplianceData();
+    } catch (err) {
+      showNotification("error", "Failed to auto-align: " + err.message);
+    }
+  };
+
+  // Audit Logs Handlers
+  const handleExportAuditJson = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditLogs, null, 2));
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `grc_audit_trail_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    showNotification("success", "Audit trail exported as JSON.");
+  };
+
+  const handleExportAuditCsv = () => {
+    const headers = ["ID", "Timestamp", "Action", "Category", "Severity", "Actor", "Details", "IP"];
+    const rows = auditLogs.map((l) => [
+      l.id,
+      `"${l.timestamp}"`,
+      `"${l.action || ""}"`,
+      `"${l.category || ""}"`,
+      `"${l.severity || ""}"`,
+      `"${l.actor || ""}"`,
+      `"${(l.details || "").replace(/"/g, '""')}"`,
+      `"${l.ip_hash || ""}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `grc_audit_trail_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showNotification("success", "Audit trail exported as CSV.");
+  };
+
+  const handleClearAuditLogs = () => {
+    if (!window.confirm("Are you sure you want to clear the audit logs? This action cannot be undone.")) return;
+    localStorageDb.clearAuditLogs();
+    showNotification("success", "Audit logs cleared successfully.");
+    fetchComplianceData();
+  };
+
+  const handleSaveManualAuditLog = (e) => {
+    e.preventDefault();
+    if (!manualAuditForm.action.trim() || !manualAuditForm.details.trim()) {
+      alert("Please provide both Event Title / Action and Details.");
+      return;
+    }
+
+    localStorageDb.logAudit({
+      action: manualAuditForm.action.trim(),
+      category: manualAuditForm.category,
+      entity: "Manual Verification",
+      details: manualAuditForm.details.trim(),
+      actor: user?.email || "Lead Auditor",
+      severity: manualAuditForm.severity,
+    });
+
+    showNotification("success", "Manual compliance event logged in audit trail.");
+    setIsManualAuditModalOpen(false);
+    setManualAuditForm({
+      action: "",
+      category: "Internal Audit",
+      details: "",
+      severity: "info",
+    });
+    fetchComplianceData();
+  };
 
   // Open Mapping Modal for a specific requirement
   const handleOpenMappingModal = (framework) => {
@@ -635,6 +985,13 @@ export function Compliance() {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
+            onClick={() => setIsAuditDrawerOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold shadow-sm transition"
+          >
+            <FiClock className="text-indigo-400" />
+            <span>Audit Trail Drawer ({auditLogs.length})</span>
+          </button>
+          <button
             onClick={() => setIsAddReqModalOpen(true)}
             className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition"
           >
@@ -834,6 +1191,38 @@ export function Compliance() {
             }`}
           >
             <span>Requirement-Control Matrix</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("policy_mapping")}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition ${
+              activeTab === "policy_mapping"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <FiLink />
+            <span>Policy-to-Control Alignment</span>
+            {policyComplianceMetrics.unmappedPoliciesCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                {policyComplianceMetrics.unmappedPoliciesCount} Unmapped
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("audit_trail")}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition ${
+              activeTab === "audit_trail"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <FiClock />
+            <span>Audit Trail & Activity Log</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+              {auditLogs.length}
+            </span>
           </button>
         </div>
 
@@ -1384,6 +1773,874 @@ export function Compliance() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. TAB 4: Internal Policy-to-Control Alignment & Compliance Tracking */}
+      {/* ========================================================================= */}
+      {activeTab === "policy_mapping" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Policy Compliance Top KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Total Policies */}
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Internal Policies
+                </span>
+                <FiFileText className="text-blue-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-white mt-1.5">
+                {policyComplianceMetrics.totalPolicies}
+              </div>
+              <div className="text-[11px] text-blue-400 mt-1 font-medium">
+                Governance Documents
+              </div>
+            </div>
+
+            {/* Mapped with Controls */}
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Controls Aligned
+                </span>
+                <FiCheckCircle className="text-emerald-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-emerald-400 mt-1.5">
+                {policyComplianceMetrics.coveredPoliciesCount}
+              </div>
+              <div className="text-[11px] text-emerald-400/80 mt-1 font-medium">
+                {policyComplianceMetrics.totalLinkedControlsCount} Linked Safeguards
+              </div>
+            </div>
+
+            {/* Unmapped Policy Gaps */}
+            <div
+              className={`bg-slate-900/90 border rounded-2xl p-4 shadow-sm transition ${
+                policyComplianceMetrics.unmappedPoliciesCount > 0
+                  ? "border-amber-500/40 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/20"
+                  : "border-slate-800/90"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Unmapped Policy Gaps
+                </span>
+                <FiAlertTriangle className="text-amber-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-amber-400 mt-1.5">
+                {policyComplianceMetrics.unmappedPoliciesCount}
+              </div>
+              <div className="text-[11px] text-amber-300/80 mt-1 font-medium">
+                {policyComplianceMetrics.unmappedPoliciesCount > 0 ? "Requires Technical Safeguards" : "All Policies Enforced"}
+              </div>
+            </div>
+
+            {/* Overall Policy Enforcement Rate */}
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Enforcement Score
+                </span>
+                <FiActivity className="text-indigo-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-white mt-1.5 flex items-baseline gap-1">
+                <span
+                  className={
+                    policyComplianceMetrics.overallEnforcementRate >= 80
+                      ? "text-emerald-400"
+                      : policyComplianceMetrics.overallEnforcementRate >= 50
+                      ? "text-amber-400"
+                      : "text-red-400"
+                  }
+                >
+                  {policyComplianceMetrics.overallEnforcementRate}%
+                </span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    policyComplianceMetrics.overallEnforcementRate >= 80
+                      ? "bg-emerald-500"
+                      : policyComplianceMetrics.overallEnforcementRate >= 50
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${policyComplianceMetrics.overallEnforcementRate}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <FiLink className="text-indigo-400" /> Internal Policy & Security Control Alignment
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Directly map corporate governance policies to technical safeguards with automated compliance tracking.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAutoMapPolicyControls}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-semibold shadow-sm transition"
+              >
+                <FiCpu />
+                <span>Auto-Align Suggested Controls</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Policies Table */}
+          {policies.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center">
+              <FiFileText className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <h3 className="text-sm font-bold text-white">No Internal Policies Found</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                Initialize corporate governance by adding policies in the Policy Management module or clicking "Seed Enterprise Starter Pack" in Profile.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-300">
+                  <thead className="bg-slate-950/70 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="py-3.5 px-4 w-28">Policy ID</th>
+                      <th className="py-3.5 px-4">Policy Title & Department</th>
+                      <th className="py-3.5 px-4">Statutory Clauses</th>
+                      <th className="py-3.5 px-4">Aligned Security Controls</th>
+                      <th className="py-3.5 px-4 text-center">Compliance Status</th>
+                      <th className="py-3.5 px-4 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {policies.map((policy, idx) => {
+                      const pId = String(policy.id);
+                      const mappedControls = policyControlsMap[pId] || policyControlsMap[policy.id] || [];
+                      const implementedCount = mappedControls.filter((c) => c.status === "implemented").length;
+                      const policyRate = mappedControls.length > 0
+                        ? Math.round((implementedCount / mappedControls.length) * 100)
+                        : 0;
+
+                      return (
+                        <tr key={policy.id} className="hover:bg-slate-800/40 transition">
+                          {/* Policy Code */}
+                          <td className="py-3.5 px-4 font-mono text-xs whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded font-mono text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              POL-{String(idx + 1).padStart(3, "0")}
+                            </span>
+                          </td>
+
+                          {/* Policy Title & Dept */}
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <div className="font-semibold text-white text-xs sm:text-sm">
+                              {policy.title || policy.policy_name}
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              {policy.department || policy.department_name || "General"}
+                            </div>
+                          </td>
+
+                          {/* Statutory Clauses */}
+                          <td className="py-3.5 px-4 text-xs max-w-xs">
+                            <span className="text-slate-300 line-clamp-2">
+                              {policy.statutory_clauses || policy.framework_iso27001 || "ISO/IEC 27001 Baseline"}
+                            </span>
+                          </td>
+
+                          {/* Aligned Controls */}
+                          <td className="py-3.5 px-4">
+                            {mappedControls.length === 0 ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                <FiAlertTriangle className="text-xs" />
+                                <span>No Safeguards Mapped (0% Gap)</span>
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5 max-w-md">
+                                {mappedControls.map((ctrl) => (
+                                  <span
+                                    key={ctrl.id}
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-mono bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600 transition"
+                                  >
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        ctrl.status === "implemented" ? "bg-emerald-400" : "bg-amber-400"
+                                      }`}
+                                    />
+                                    <span className="font-bold text-blue-300">{ctrl.control_code}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnlinkControlFromPolicy(policy.id, ctrl.id, ctrl.control_code)}
+                                      className="text-slate-500 hover:text-red-400 ml-0.5"
+                                      title="Unlink Control"
+                                    >
+                                      <FiX className="text-xs" />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Compliance Status & Percentage */}
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <div className="flex flex-col items-center">
+                              <span
+                                className={`text-xs font-mono font-bold ${
+                                  mappedControls.length === 0
+                                    ? "text-red-400"
+                                    : policyRate === 100
+                                    ? "text-emerald-400"
+                                    : "text-amber-400"
+                                }`}
+                              >
+                                {mappedControls.length === 0 ? "0%" : `${policyRate}%`}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {mappedControls.length === 0
+                                  ? "Unmapped"
+                                  : `${implementedCount}/${mappedControls.length} Implemented`}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPolicyMapping(policy)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow transition"
+                            >
+                              <FiLink />
+                              <span>Map Controls</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. TAB 5: Audit Trail & Immutable Activity Log */}
+      {/* ========================================================================= */}
+      {activeTab === "audit_trail" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Audit Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Total Audit Logs
+                </span>
+                <FiClock className="text-blue-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-white mt-1.5">{auditLogs.length}</div>
+              <div className="text-[11px] text-blue-400 mt-1 font-medium">Recorded Events</div>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Auth & Sign-ins
+                </span>
+                <FiShield className="text-indigo-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-indigo-400 mt-1.5">
+                {auditLogs.filter((l) => l.category === "Authentication").length}
+              </div>
+              <div className="text-[11px] text-indigo-300 mt-1 font-medium">OTP & Session Events</div>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Compliance Modifications
+                </span>
+                <FiDatabase className="text-emerald-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-emerald-400 mt-1.5">
+                {
+                  auditLogs.filter(
+                    (l) =>
+                      l.category.includes("Policy") ||
+                      l.category.includes("Control") ||
+                      l.category.includes("Compliance") ||
+                      l.category.includes("Risk")
+                  ).length
+                }
+              </div>
+              <div className="text-[11px] text-emerald-400/80 mt-1 font-medium">Data Integrity Logs</div>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  High Severity Alerts
+                </span>
+                <FiAlertTriangle className="text-amber-400 text-lg" />
+              </div>
+              <div className="text-2xl font-bold text-amber-400 mt-1.5">
+                {auditLogs.filter((l) => l.severity === "warning" || l.severity === "critical").length}
+              </div>
+              <div className="text-[11px] text-amber-300/80 mt-1 font-medium">Anomalies & Deletions</div>
+            </div>
+          </div>
+
+          {/* Action & Filter Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              {/* Search */}
+              <div className="relative min-w-[240px] flex-1">
+                <FiSearch className="absolute left-3.5 top-2.5 text-slate-500 text-xs" />
+                <input
+                  type="text"
+                  placeholder="Search logs by action, actor, or details..."
+                  value={auditSearchTerm}
+                  onChange={(e) => setAuditSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <select
+                value={auditCategoryFilter}
+                onChange={(e) => setAuditCategoryFilter(e.target.value)}
+                className="bg-slate-800 border border-slate-700 text-white rounded-xl text-xs px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Categories</option>
+                <option value="Authentication">Authentication</option>
+                <option value="Risk Management">Risk Management</option>
+                <option value="Policy Compliance">Policy Compliance</option>
+                <option value="Security Controls">Security Controls</option>
+                <option value="Compliance Mapping">Compliance Mapping</option>
+                <option value="System Security">System Security</option>
+                <option value="Internal Audit">Internal Audit</option>
+              </select>
+
+              {/* Severity Filter */}
+              <select
+                value={auditSeverityFilter}
+                onChange={(e) => setAuditSeverityFilter(e.target.value)}
+                className="bg-slate-800 border border-slate-700 text-white rounded-xl text-xs px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Severities</option>
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+
+            {/* Audit Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsManualAuditModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow transition"
+              >
+                <FiPlus />
+                <span>Log Milestone</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportAuditJson}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition"
+                title="Export JSON"
+              >
+                <FiDownload />
+                <span>JSON</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportAuditCsv}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition"
+                title="Export CSV"
+              >
+                <FiFileText />
+                <span>CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAuditLogs}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold transition"
+              >
+                <FiTrash2 />
+                <span>Clear Log</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Audit Logs Table */}
+          {filteredAuditLogs.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center">
+              <FiClock className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <h3 className="text-sm font-bold text-white">No Audit Events Logged</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                All platform actions, user authentications, and data modifications will automatically appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-300">
+                  <thead className="bg-slate-950/70 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="py-3.5 px-4 w-44">Timestamp</th>
+                      <th className="py-3.5 px-4 w-32">Severity</th>
+                      <th className="py-3.5 px-4">Action & Category</th>
+                      <th className="py-3.5 px-4">Actor</th>
+                      <th className="py-3.5 px-4">Details & Entity</th>
+                      <th className="py-3.5 px-4 text-center">Verified Node</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-sans">
+                    {filteredAuditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-800/40 transition">
+                        {/* Timestamp */}
+                        <td className="py-3.5 px-4 font-mono text-xs text-slate-400 whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleString("en-US", {
+                            month: "short",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })}
+                        </td>
+
+                        {/* Severity */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                              log.severity === "critical"
+                                ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                                : log.severity === "warning"
+                                ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                                : "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                            }`}
+                          >
+                            {log.severity || "info"}
+                          </span>
+                        </td>
+
+                        {/* Action & Category */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono text-xs font-bold text-white">
+                            {log.action}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            {log.category}
+                          </div>
+                        </td>
+
+                        {/* Actor */}
+                        <td className="py-3.5 px-4 text-xs font-medium text-slate-200 whitespace-nowrap">
+                          {log.actor || "System"}
+                        </td>
+
+                        {/* Details */}
+                        <td className="py-3.5 px-4 text-xs text-slate-300 max-w-md">
+                          <div className="leading-relaxed">{log.details}</div>
+                        </td>
+
+                        {/* Verified Node */}
+                        <td className="py-3.5 px-4 text-center font-mono text-[10px] text-slate-500 whitespace-nowrap">
+                          {log.ip_hash || "127.0.0.1"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DRAWER: Persistent Right Slide-Over Audit Trail */}
+      {/* ========================================================================= */}
+      {isAuditDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden animate-fadeIn">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsAuditDrawerOpen(false)}
+          />
+
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-md bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col">
+              {/* Drawer Header */}
+              <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
+                    <FiClock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">Security Audit Trail</h2>
+                    <p className="text-xs text-slate-400">{auditLogs.length} Events Logged</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAuditDrawerOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                >
+                  <FiX className="text-lg" />
+                </button>
+              </div>
+
+              {/* Drawer Search & Filters */}
+              <div className="p-4 border-b border-slate-800 space-y-2 bg-slate-900/90">
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-2.5 text-slate-500 text-xs" />
+                  <input
+                    type="text"
+                    placeholder="Search event feed..."
+                    value={auditSearchTerm}
+                    onChange={(e) => setAuditSearchTerm(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={auditCategoryFilter}
+                    onChange={(e) => setAuditCategoryFilter(e.target.value)}
+                    className="w-1/2 bg-slate-800 border border-slate-700 text-white rounded-xl text-[11px] px-2 py-1"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="Authentication">Auth</option>
+                    <option value="Risk Management">Risks</option>
+                    <option value="Policy Compliance">Policies</option>
+                    <option value="Security Controls">Controls</option>
+                    <option value="System Security">Security</option>
+                  </select>
+                  <select
+                    value={auditSeverityFilter}
+                    onChange={(e) => setAuditSeverityFilter(e.target.value)}
+                    className="w-1/2 bg-slate-800 border border-slate-700 text-white rounded-xl text-[11px] px-2 py-1"
+                  >
+                    <option value="all">All Severities</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Drawer Event Feed */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {filteredAuditLogs.length === 0 ? (
+                  <div className="text-center py-10 text-xs text-slate-500">
+                    No matching audit logs found.
+                  </div>
+                ) : (
+                  filteredAuditLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                            log.severity === "critical"
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                              : log.severity === "warning"
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                              : "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                          }`}
+                        >
+                          {log.severity || "info"}
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-500">
+                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="font-mono text-xs font-bold text-white">{log.action}</div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">{log.details}</p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-900">
+                        <span>Actor: {log.actor}</span>
+                        <span>{log.category}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportAuditCsv}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  Export CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAuditDrawerOpen(false);
+                    setActiveTab("audit_trail");
+                  }}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow transition"
+                >
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: Policy-to-Control Linkage Selector */}
+      {/* ========================================================================= */}
+      {isPolicyMappingModalOpen && activePolicyForMapping && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+              <div>
+                <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded font-mono text-xs font-bold">
+                  Policy Alignment
+                </span>
+                <h2 className="text-lg font-bold text-white mt-1">
+                  Map Security Controls to Policy
+                </h2>
+                <p className="text-xs text-slate-400 max-w-lg mt-0.5 font-medium">
+                  "{activePolicyForMapping.title || activePolicyForMapping.policy_name}"
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPolicyMappingModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <FiX className="text-lg" />
+              </button>
+            </div>
+
+            {/* Search Controls */}
+            <div className="py-3">
+              <div className="relative">
+                <FiSearch className="absolute left-3.5 top-2.5 text-slate-500 text-xs" />
+                <input
+                  type="text"
+                  placeholder="Filter controls by code, title, or category..."
+                  value={policyMappingSearchTerm}
+                  onChange={(e) => setPolicyMappingSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Controls Checkbox List */}
+            <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-1">
+              {controls
+                .filter((c) => {
+                  if (!policyMappingSearchTerm.trim()) return true;
+                  const term = policyMappingSearchTerm.toLowerCase();
+                  return (
+                    (c.control_code || "").toLowerCase().includes(term) ||
+                    (c.title || "").toLowerCase().includes(term) ||
+                    (c.category || "").toLowerCase().includes(term)
+                  );
+                })
+                .map((ctrl) => {
+                  const isChecked = selectedPolicyControlIds.includes(ctrl.id);
+                  return (
+                    <label
+                      key={ctrl.id}
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                        isChecked
+                          ? "bg-blue-600/10 border-blue-500/40 text-white"
+                          : "bg-slate-800/40 border-slate-700/60 hover:bg-slate-800 text-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPolicyControlIds([...selectedPolicyControlIds, ctrl.id]);
+                          } else {
+                            setSelectedPolicyControlIds(
+                              selectedPolicyControlIds.filter((id) => id !== ctrl.id)
+                            );
+                          }
+                        }}
+                        className="mt-1 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-blue-400">
+                            {ctrl.control_code}
+                          </span>
+                          <span className="text-xs font-semibold text-white truncate">
+                            {ctrl.title}
+                          </span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-medium border ${
+                              ctrl.status === "implemented"
+                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                                : "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                            }`}
+                          >
+                            {ctrl.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                          {ctrl.description || "Active security safeguard control."}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800 mt-2">
+              <span className="text-xs text-slate-400">
+                {selectedPolicyControlIds.length} control(s) selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPolicyMappingModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingPolicyMappings}
+                  onClick={handleSavePolicyMappings}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingPolicyMappings ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    "Save Alignments"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: Record Manual Audit Milestone Event */}
+      {/* ========================================================================= */}
+      {isManualAuditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <FiClock className="text-blue-400" /> Record Compliance Audit Milestone
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsManualAuditModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <FiX className="text-lg" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveManualAuditLog} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                  Event Action / Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. AUDIT_WALKTHROUGH_COMPLETED"
+                  value={manualAuditForm.action}
+                  onChange={(e) => setManualAuditForm({ ...manualAuditForm, action: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={manualAuditForm.category}
+                    onChange={(e) => setManualAuditForm({ ...manualAuditForm, category: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Internal Audit">Internal Audit</option>
+                    <option value="Statutory Frameworks">Statutory Frameworks</option>
+                    <option value="Security Controls">Security Controls</option>
+                    <option value="Policy Compliance">Policy Compliance</option>
+                    <option value="System Security">System Security</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                    Severity
+                  </label>
+                  <select
+                    value={manualAuditForm.severity}
+                    onChange={(e) => setManualAuditForm({ ...manualAuditForm, severity: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                  Audit Findings & Verification Details
+                </label>
+                <textarea
+                  required
+                  rows="3"
+                  placeholder="Document formal audit observations, sampling scope, and stakeholder sign-off..."
+                  value={manualAuditForm.details}
+                  onChange={(e) => setManualAuditForm({ ...manualAuditForm, details: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsManualAuditModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow transition"
+                >
+                  Log to Audit Trail
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

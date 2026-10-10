@@ -50,6 +50,15 @@ export const requestOtp = async (email) => {
     window.localStorage.setItem(OTP_CHALLENGE_KEY, JSON.stringify(challenge));
   }
 
+  localStorageDb.logAudit({
+    action: "AUTH_OTP_REQUESTED",
+    category: "Authentication",
+    entity: "Session",
+    details: `Generated 6-digit verification code challenge for ${cleanEmail}`,
+    actor: cleanEmail,
+    severity: "info",
+  });
+
   return {
     data: {
       email: cleanEmail,
@@ -130,6 +139,15 @@ export const verifyOtp = async (email, inputCode, metadata = {}) => {
     } catch (e) {}
 
     const remaining = 3 - challenge.attempts;
+    localStorageDb.logAudit({
+      action: "AUTH_OTP_FAILED",
+      category: "Authentication",
+      entity: "Identity",
+      details: `Failed OTP attempt for ${cleanEmail}. ${remaining} attempts remaining before auto-wipe.`,
+      actor: cleanEmail,
+      severity: "warning",
+    });
+
     if (remaining <= 0) {
       localStorageDb.triggerSecurityAutoWipe(
         "Brute Force Detection: Maximum failed OTP attempts exceeded."
@@ -200,6 +218,15 @@ export const verifyOtp = async (email, inputCode, metadata = {}) => {
 
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
+  localStorageDb.logAudit({
+    action: "AUTH_LOGIN_SUCCESS",
+    category: "Authentication",
+    entity: "Session",
+    details: `User verified OTP and established session (Role: ${user.role})`,
+    actor: user.email,
+    severity: "info",
+  });
+
   return { data: { user, session }, error: null };
 };
 
@@ -264,6 +291,20 @@ export const signIn = async (email, password) => {
 
 // Logout current user
 export const signOut = async () => {
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const actor = parsed?.user?.email || "User";
+    localStorageDb.logAudit({
+      action: "AUTH_LOGOUT",
+      category: "Authentication",
+      entity: "Session",
+      details: "User terminated session and signed out",
+      actor,
+      severity: "info",
+    });
+  } catch (e) {}
+
   window.localStorage.removeItem(SESSION_KEY);
   return { error: null };
 };
@@ -281,6 +322,14 @@ export const validateSessionIntegrity = () => {
     const currentFp = getBrowserFingerprint();
     if (parsed.fingerprint && parsed.fingerprint !== currentFp) {
       // Fingerprint anomaly detected! Multi-device handover or session hijack signature
+      localStorageDb.logAudit({
+        action: "AUTH_SESSION_HIJACK_DETECTED",
+        category: "System Security",
+        entity: "Security Watcher",
+        details: "Browser fingerprint mismatch detected! Emergency security auto-wipe triggered.",
+        actor: "Security Watcher",
+        severity: "critical",
+      });
       localStorageDb.triggerSecurityAutoWipe(
         "Multi-Device Session Anomaly / Fingerprint Mismatch Detected"
       );

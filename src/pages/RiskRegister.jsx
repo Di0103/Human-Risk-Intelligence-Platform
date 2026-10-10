@@ -18,6 +18,12 @@ import {
   FiRefreshCw,
   FiTrendingUp,
   FiInfo,
+  FiTarget,
+  FiCpu,
+  FiZap,
+  FiChevronDown,
+  FiChevronUp,
+  FiArrowRight,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 
@@ -33,6 +39,15 @@ export function RiskRegister() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [heatmapFilter, setHeatmapFilter] = useState(null); // { likelihood, impact } or null
+
+  // Automated Risk Scoring & Vulnerability Assessment Calculator
+  const [calcLikelihood, setCalcLikelihood] = useState(4);
+  const [calcImpact, setCalcImpact] = useState(4);
+  const [calcVulnFactor, setCalcVulnFactor] = useState(1.0); // 0.8, 1.0, 1.2, 1.5
+  const [calcMitigationEff, setCalcMitigationEff] = useState(25); // 0, 25, 50, 75 %
+  const [calcCategory, setCalcCategory] = useState("Human / Social Engineering");
+  const [calcThreatName, setCalcThreatName] = useState("");
+  const [showCalculator, setShowCalculator] = useState(true);
 
   // Notification Toast
   const [notification, setNotification] = useState(null);
@@ -157,6 +172,78 @@ export function RiskRegister() {
 
     return { total, high, medium, low, avgScore };
   }, [risks]);
+
+  // Automated Matrix Calculator Dynamic Calculations
+  const calcInherentScore = Number(calcLikelihood) * Number(calcImpact);
+  const calcAdjustedScore = Math.min(25, Math.round(calcInherentScore * Number(calcVulnFactor)));
+  const calcResidualScore = Math.max(1, Math.round(calcAdjustedScore * (1 - Number(calcMitigationEff) / 100)));
+  const calcInherentLevel = calculateLevel(calcInherentScore);
+  const calcResidualLevel = calculateLevel(calcResidualScore);
+
+  const getRecommendedTreatment = (score) => {
+    if (score >= 20) {
+      return {
+        strategy: "Mitigate",
+        priority: "Critical Priority",
+        action: "Deploy strict Technical Compensating Safeguards, MFA Enforcement, and direct Board escalation.",
+      };
+    }
+    if (score >= 15) {
+      return {
+        strategy: "Mitigate",
+        priority: "High Priority",
+        action: "Deploy technical controls, zero-trust endpoint protections, and weekly SOC telemetry tracking.",
+      };
+    }
+    if (score >= 8) {
+      return {
+        strategy: "Mitigate",
+        priority: "Medium Priority",
+        action: "Enforce departmental policy controls, quarterly access review, and workforce awareness training.",
+      };
+    }
+    return {
+      strategy: "Accept",
+      priority: "Low / Tolerable Priority",
+      action: "Maintain baseline monitoring and tolerate within standard operational risk appetite.",
+    };
+  };
+
+  const getStatutoryClausesForCategory = (cat) => {
+    switch (cat) {
+      case "Human / Social Engineering":
+        return "ISO/IEC 27001:2022 Control A.6.3 (Security awareness) & COBIT DSS05.04";
+      case "Technical / Infrastructure":
+        return "ISO/IEC 27001:2022 Control A.8.1 (Endpoint) & A.8.20 (Network Security)";
+      case "Data Privacy & Governance":
+        return "EU GDPR Article 32 (Security of processing) & IT Act 2000 Section 43A";
+      case "Compliance & Legal":
+        return "ISO/IEC 27001:2022 Control A.5.31 (Legal compliance) & COBIT MEA03";
+      case "Third-Party Vendor":
+        return "ISO/IEC 27001:2022 Control A.5.19 (Supplier security) & COBIT APO10";
+      default:
+        return "ISO/IEC 27001:2022 Clause 6.1 (Risk management)";
+    }
+  };
+
+  const handleRegisterFromCalculator = () => {
+    const defaultTitle = calcThreatName.trim() || `Identified Threat (${calcCategory})`;
+    const rec = getRecommendedTreatment(calcInherentScore);
+    const statutory = getStatutoryClausesForCategory(calcCategory);
+
+    setForm({
+      title: defaultTitle,
+      category: calcCategory,
+      likelihood: calcLikelihood,
+      impact: calcImpact,
+      owner: owners[0] || "Alex Turner / CISO",
+      treatment_strategy: rec.strategy,
+      treatment_plan: `[${rec.strategy}] ${rec.action} Aligned with ${statutory}. Inherent: ${calcInherentScore}/25, Residual Risk: ${calcResidualScore}/25.`,
+      status: "Open",
+    });
+    setEditingId(null);
+    setIsModalOpen(true);
+  };
 
   // 5x5 Heatmap Matrix Coordinate Aggregation
   const heatmapData = useMemo(() => {
@@ -522,6 +609,289 @@ export function RiskRegister() {
         </div>
       </div>
 
+      {/* 2.5 Automated Risk Scoring & Vulnerability Assessment Matrix Calculator */}
+      <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 shadow-lg bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/20">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 mb-4 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
+              <FiCpu className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                Automated Risk Scoring & Vulnerability Matrix Calculator
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                  L × I Scoring Engine
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Real-time Likelihood vs Impact quantitative calibration, threat exposure multipliers, and residual risk calculation.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCalculator(!showCalculator)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold transition"
+            >
+              {showCalculator ? <FiChevronUp /> : <FiChevronDown />}
+              <span>{showCalculator ? "Hide Calculator" : "Show Calculator"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRegisterFromCalculator}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/20 transition"
+            >
+              <FiPlus />
+              <span>Pre-Fill & Register Threat</span>
+            </button>
+          </div>
+        </div>
+
+        {showCalculator && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1 animate-fadeIn">
+            {/* Left Controls (7 cols) */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Likelihood Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <FiSliders className="text-blue-400" /> Likelihood (Probability)
+                  </label>
+                  <span className="text-xs font-mono font-bold text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-500/30">
+                    Level {calcLikelihood} / 5
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[1, 2, 3, 4, 5].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setCalcLikelihood(val)}
+                      className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition ${
+                        calcLikelihood === val
+                          ? "bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-600/30 scale-[1.02]"
+                          : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
+                      }`}
+                    >
+                      <div className="font-bold">{val}</div>
+                      <div className="text-[10px] opacity-75 truncate">
+                        {val === 1 && "Rare"}
+                        {val === 2 && "Unlikely"}
+                        {val === 3 && "Possible"}
+                        {val === 4 && "Likely"}
+                        {val === 5 && "Certain"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 italic">
+                  {likelihoodLabels[calcLikelihood]}
+                </p>
+              </div>
+
+              {/* Impact Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <FiTarget className="text-indigo-400" /> Impact (Severity of Consequence)
+                  </label>
+                  <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-500/30">
+                    Level {calcImpact} / 5
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[1, 2, 3, 4, 5].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setCalcImpact(val)}
+                      className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition ${
+                        calcImpact === val
+                          ? "bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30 scale-[1.02]"
+                          : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
+                      }`}
+                    >
+                      <div className="font-bold">{val}</div>
+                      <div className="text-[10px] opacity-75 truncate">
+                        {val === 1 && "Insignif."}
+                        {val === 2 && "Minor"}
+                        {val === 3 && "Moderate"}
+                        {val === 4 && "Major"}
+                        {val === 5 && "Catastr."}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 italic">
+                  {impactLabels[calcImpact]}
+                </p>
+              </div>
+
+              {/* Vulnerability Factor & Mitigation Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                    Threat Exposure Factor
+                  </label>
+                  <select
+                    value={calcVulnFactor}
+                    onChange={(e) => setCalcVulnFactor(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value={0.8}>Low Vulnerability Exposure (0.8x)</option>
+                    <option value={1.0}>Standard Baseline Threat (1.0x)</option>
+                    <option value={1.2}>Heightened Exploit Surface (1.2x)</option>
+                    <option value={1.5}>Critical / Zero-Day Active Threat (1.5x)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                    Mitigating Control Effectiveness
+                  </label>
+                  <select
+                    value={calcMitigationEff}
+                    onChange={(e) => setCalcMitigationEff(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value={0}>0% - No Active Safeguards</option>
+                    <option value={25}>25% - Baseline Hygiene Enforced</option>
+                    <option value={50}>50% - Standard Controls Active</option>
+                    <option value={75}>75% - Zero-Trust & MFA Hardened</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick Threat Title & Category Input */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                    Risk Category
+                  </label>
+                  <select
+                    value={calcCategory}
+                    onChange={(e) => setCalcCategory(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="Human / Social Engineering">Human / Social Engineering</option>
+                    <option value="Technical / Infrastructure">Technical / Infrastructure</option>
+                    <option value="Data Privacy & Governance">Data Privacy & Governance</option>
+                    <option value="Compliance & Legal">Compliance & Legal</option>
+                    <option value="Operational">Operational</option>
+                    <option value="Third-Party Vendor">Third-Party Vendor</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                    Simulated Threat Title
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Targeted Spear-Phishing Attack"
+                    value={calcThreatName}
+                    onChange={(e) => setCalcThreatName(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Assessment Summary & Telemetry Output (5 cols) */}
+            <div className="lg:col-span-5 bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block mb-1">
+                  Automated Calculation Results
+                </span>
+
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  {/* Inherent Score Card */}
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                    <span className="text-[10px] font-semibold text-slate-400 block uppercase">
+                      Inherent Score
+                    </span>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-2xl font-mono font-bold text-white">
+                        {calcInherentScore}
+                      </span>
+                      <span className="text-xs text-slate-500">/ 25</span>
+                    </div>
+                    <div className="mt-1">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${calcInherentLevel.badge}`}
+                      >
+                        {calcInherentLevel.label} Level
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block mt-1">
+                      ({calcLikelihood} × {calcImpact})
+                    </span>
+                  </div>
+
+                  {/* Residual Score Card */}
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                    <span className="text-[10px] font-semibold text-slate-400 block uppercase">
+                      Residual Score
+                    </span>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-2xl font-mono font-bold text-emerald-400">
+                        {calcResidualScore}
+                      </span>
+                      <span className="text-xs text-slate-500">/ 25</span>
+                    </div>
+                    <div className="mt-1">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${calcResidualLevel.badge}`}
+                      >
+                        {calcResidualLevel.label} Post-Control
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400/80 block mt-1">
+                      -{calcMitigationEff}% Mitigated
+                    </span>
+                  </div>
+                </div>
+
+                {/* Treatment Recommendation Card */}
+                <div className="mt-3 p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-medium">Treatment Plan:</span>
+                    <span className="font-bold text-indigo-300">
+                      [{getRecommendedTreatment(calcInherentScore).strategy}] {getRecommendedTreatment(calcInherentScore).priority}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    {getRecommendedTreatment(calcInherentScore).action}
+                  </p>
+                </div>
+
+                {/* Statutory Cross-Mapping suggestion */}
+                <div className="mt-2.5 p-2.5 bg-blue-950/30 border border-blue-500/20 rounded-xl">
+                  <span className="text-[10px] font-semibold text-blue-300 uppercase block">
+                    Statutory Framework Crosswalk:
+                  </span>
+                  <span className="text-[11px] text-slate-300 mt-0.5 block font-medium">
+                    {getStatutoryClausesForCategory(calcCategory)}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRegisterFromCalculator}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition"
+              >
+                <FiPlus className="text-sm" />
+                <span>Register Threat to Active Register</span>
+                <FiArrowRight className="text-sm" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 3. Interactive 5x5 Risk Heatmap Matrix */}
       <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 mb-4 border-b border-slate-800">
@@ -581,6 +951,8 @@ export function RiskRegister() {
                             key={i}
                             type="button"
                             onClick={() => {
+                              setCalcLikelihood(l);
+                              setCalcImpact(i);
                               if (isSelected) {
                                 setHeatmapFilter(null);
                               } else {
@@ -801,8 +1173,13 @@ export function RiskRegister() {
                       </td>
 
                       {/* Score */}
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-sm text-white">
-                        {score}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div className="font-mono font-bold text-sm text-white">
+                          {score}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400">
+                          ({risk.likelihood} × {risk.impact})
+                        </div>
                       </td>
 
                       {/* Level Badge */}
