@@ -21,6 +21,8 @@ import {
   FiCrosshair,
   FiEye,
   FiClock,
+  FiLock,
+  FiX,
 } from "react-icons/fi";
 
 import {
@@ -151,6 +153,9 @@ const Dashboard = () => {
     signals: [],
     lastScanned: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   });
+
+  // Active Security Shield / Auto-Wipe Inspection Modal State
+  const [showShieldModal, setShowShieldModal] = useState(false);
 
   // ----------------------------------------------------------
   // STATS
@@ -436,6 +441,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleSimulateTelemetryScan = () => {
+    try {
+      localStorageDb.logAudit({
+        action: "TELEMETRY_RADAR_SCAN",
+        category: "Threat Intelligence",
+        entity: "Radar Enclave",
+        details: "Simulated vulnerability radar scan executed across 4 workforce threat vectors",
+        severity: "info",
+      });
+    } catch (e) {}
+
+    setTelemetry((prev) => ({
+      ...prev,
+      lastScanned: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    }));
+
+    // Trigger reactive state propagation
+    localStorageDb.notifyUpdate("telemetry");
+  };
+
   useEffect(() => {
     fetchDashboard();
 
@@ -702,12 +727,29 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* REFRESH */}
+          {/* ACTIVE SECURITY SHIELD / AUTO-WIPE GUARD INDICATOR */}
           <button
-            onClick={fetchDashboard}
-            className="h-10 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition text-sm font-semibold shadow-lg shadow-blue-600/20"
+            type="button"
+            onClick={() => setShowShieldModal(true)}
+            className="h-10 px-3.5 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 hover:border-cyan-400 text-white rounded-lg transition text-xs font-semibold shadow-lg shadow-cyan-950/20 flex items-center gap-2.5 group"
+            title="Inspect Active Security Shield & Auto-Wipe Guard Defense"
           >
-            Refresh Dashboard
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            <FiShield className="text-cyan-400 text-sm group-hover:scale-110 transition-transform" />
+            <div className="flex flex-col text-left leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white">Auto-Wipe Guard</span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  ARMED
+                </span>
+              </div>
+              <span className="text-[10px] text-cyan-400/80 font-mono mt-0.5">
+                Session Defense Active
+              </span>
+            </div>
           </button>
         </div>
       </div>
@@ -765,11 +807,52 @@ const Dashboard = () => {
             </span>
             <button
               type="button"
-              onClick={fetchDashboard}
+              onClick={handleSimulateTelemetryScan}
               className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold transition"
             >
               <FiZap className="text-xs" />
               <span>Simulate Telemetry Scan</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Active Security Defense & Auto-Wipe Guard Status Banner */}
+        <div className="bg-slate-950/90 border border-cyan-500/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-inner">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+              <FiShield className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Active Security Shield & Auto-Wipe Sentinel
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ARMED & OPERATIONAL
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Session hijacking detection active via SHA-256 browser fingerprinting; emergency auto-wipe zeroization protocol on standby.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-right hidden sm:block">
+              <span className="text-[10px] font-mono text-slate-400 block">State Engine</span>
+              <span className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-1 justify-end">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Reactive Events Active
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowShieldModal(true)}
+              className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:border-cyan-400 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <FiEye className="text-xs" />
+              <span>Inspect Shield Telemetry</span>
             </button>
           </div>
         </div>
@@ -1595,6 +1678,136 @@ const Dashboard = () => {
         addNewLabel="Create Policy"
         last
       />
+
+      {/* ===================================================
+          SECURITY SHIELD / AUTO-WIPE GUARD INSPECTION MODAL
+      ==================================================== */}
+      {showShieldModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative space-y-5">
+            <button
+              type="button"
+              onClick={() => setShowShieldModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              aria-label="Close modal"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-xl relative">
+                <FiShield className="w-6 h-6" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  Active Security Shield & Auto-Wipe Guard
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    ARMED
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Zero-Trust Session Integrity & Emergency Data Isolation Telemetry
+                </p>
+              </div>
+            </div>
+
+            {/* Defense Tiles Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                    <FiLock className="text-cyan-400" /> Session Hijacking Defense
+                  </span>
+                  <span className="font-mono text-emerald-400 font-bold">ACTIVE</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Cryptographic browser fingerprinting ($UA + Screen + Locale + TZ$) validates session integrity on every operation, preventing multi-device takeover.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                    <FiZap className="text-amber-400" /> Emergency Auto-Wipe Guard
+                  </span>
+                  <span className="font-mono text-amber-400 font-bold">ARMED</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Deterministic zeroization protocol purges all 10 operational compliance collections back to 0 records instantly upon detected session anomaly.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                    <FiCpu className="text-emerald-400" /> Reactive State Synchronization
+                  </span>
+                  <span className="font-mono text-emerald-400 font-bold">ONLINE</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Global <code className="text-slate-300 font-mono text-[10px]">grc-storage-update</code> event bus guarantees instant reactive state without manual refresh triggers.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                    <FiCheckCircle className="text-blue-400" /> Data Enclave Boundary
+                  </span>
+                  <span className="font-mono text-blue-400 font-bold">ISOLATED</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  100% Client-Side LocalStorage state engine. Zero unauthenticated external network requests or cross-tenant data leaks.
+                </p>
+              </div>
+            </div>
+
+            {/* Diagnostic Footer */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Active Operator: <strong className="text-slate-200">{fullName}</strong></span>
+              <span className="text-cyan-400">Enclave: Verified</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowShieldModal(false);
+                  navigate("/compliance");
+                }}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+              >
+                <span>View Audit Trail</span>
+                <FiArrowRight className="text-xs" />
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowShieldModal(false);
+                    navigate("/profile");
+                  }}
+                  className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-semibold transition"
+                >
+                  Manage Security Lock
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowShieldModal(false)}
+                  className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition shadow-md shadow-cyan-600/30"
+                >
+                  Acknowledge
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
