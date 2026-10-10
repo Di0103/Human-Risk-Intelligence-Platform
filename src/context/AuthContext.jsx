@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { localStorageDb, DEFAULT_USERS } from "../utils/localStorageDb";
+import {
+  requestOtp as serviceRequestOtp,
+  verifyOtp as serviceVerifyOtp,
+  validateSessionIntegrity,
+  signOut as serviceSignOut,
+} from "../services/authService";
 
 const SESSION_KEY = "grc_session";
 
@@ -8,10 +14,14 @@ const AuthContext = createContext({
   profile: null,
   session: null,
   loading: true,
-  loginWithGoogle: async () => {},
+  securityLockout: null,
+  requestOtp: async () => {},
+  verifyOtp: async () => {},
   loginWithEmail: async () => {},
   signupWithEmail: async () => {},
+  loginWithGoogle: async () => {},
   logout: async () => {},
+  triggerEmergencyAutoWipe: () => {},
 });
 
 export function AuthProvider({ children }) {
@@ -19,68 +29,111 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [securityLockout, setSecurityLockout] = useState(() => localStorageDb.getSecurityLockout());
 
   // Initialize Auth State from LocalStorage
   useEffect(() => {
     try {
-      const rawSession = window.localStorage.getItem(SESSION_KEY);
-      if (rawSession) {
-        const parsed = JSON.parse(rawSession);
-        if (parsed?.user) {
-          setUser(parsed.user);
-          setSession(parsed);
-          setProfile({
-            id: parsed.user.id,
-            email: parsed.user.email,
-            full_name: parsed.user.user_metadata?.full_name || parsed.user.email.split("@")[0],
-            role: parsed.user.user_metadata?.role || "admin",
-          });
-        }
-      } else {
-        // Default initial session for seamless evaluation
-        const defaultAdmin = DEFAULT_USERS[0];
-        const initialSession = {
-          user: {
-            id: defaultAdmin.id,
-            email: defaultAdmin.email,
-            user_metadata: {
-              full_name: defaultAdmin.full_name,
-              role: defaultAdmin.role,
-            },
-            created_at: defaultAdmin.created_at,
-          },
-          access_token: "local-dev-jwt-token",
-        };
-        window.localStorage.setItem(SESSION_KEY, JSON.stringify(initialSession));
-        setUser(initialSession.user);
-        setSession(initialSession);
+      const integrity = validateSessionIntegrity();
+      if (integrity.valid && integrity.user) {
+        setUser(integrity.user);
+        setSession(integrity.session);
         setProfile({
-          id: defaultAdmin.id,
-          email: defaultAdmin.email,
-          full_name: defaultAdmin.full_name,
-          role: defaultAdmin.role,
+          id: integrity.user.id,
+          email: integrity.user.email,
+          full_name:
+            integrity.user.user_metadata?.full_name ||
+            integrity.user.full_name ||
+            integrity.user.email.split("@")[0],
+          role:
+            integrity.user.user_metadata?.role ||
+            integrity.user.role ||
+            "admin",
         });
+      } else {
+        // No auto-login: Unauthenticated visitors must land on the Login screen
+        setUser(null);
+        setSession(null);
+        setProfile(null);
       }
     } catch (e) {
       console.warn("Failed to parse local auth session:", e);
+      setUser(null);
     } finally {
       setLoading(false);
     }
+
+    // Security Alert & Auto-Wipe Listener
+    const handleSecurityAlert = (e) => {
+      const lockoutData = e.detail || localStorageDb.getSecurityLockout();
+      setSecurityLockout(lockoutData);
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+    };
+
+    window.addEventListener("grc-security-alert", handleSecurityAlert);
+    return () => {
+      window.removeEventListener("grc-security-alert", handleSecurityAlert);
+    };
   }, []);
 
-  // Login with Email & Password
+  // Request OTP for Email
+  const requestOtp = async (email) => {
+    return await serviceRequestOtp(email);
+  };
+
+  // Verify OTP and Authenticate
+  const verifyOtp = async (email, code, metadata = {}) => {
+    setLoading(true);
+    try {
+      const res = await serviceVerifyOtp(email, code, metadata);
+      if (res.error) {
+        if (res.error.lockout) {
+          setSecurityLockout(localStorageDb.getSecurityLockout());
+        }
+        return res;
+      }
+
+      if (res.data?.user) {
+        setUser(res.data.user);
+        setSession(res.data.session);
+        setProfile({
+          id: res.data.user.id,
+          email: res.data.user.email,
+          full_name:
+            res.data.user.user_metadata?.full_name ||
+            res.data.user.full_name ||
+            metadata.fullName ||
+            res.data.user.email.split("@")[0],
+          role:
+            res.data.user.user_metadata?.role ||
+            res.data.user.role ||
+            metadata.role ||
+            "admin",
+        });
+        setSecurityLockout(null);
+      }
+
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Direct Login with Email & Password (or quick login)
   const loginWithEmail = async (email, password) => {
     setLoading(true);
     try {
+      const cleanEmail = String(email).trim().toLowerCase();
       const users = localStorageDb.get("users");
-      let matched = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      let matched = users.find((u) => u.email.toLowerCase() === cleanEmail);
 
       if (!matched) {
-        // If user doesn't exist, create on the fly with admin role for evaluation ease
         matched = {
           id: `usr-${Date.now()}`,
-          email,
-          full_name: email.split("@")[0].replace(".", " "),
+          email: cleanEmail,
+          full_name: cleanEmail.split("@")[0].replace(/[._]/g, " "),
           role: "admin",
           created_at: new Date().toISOString(),
         };
@@ -99,7 +152,8 @@ export function AuthProvider({ children }) {
 
       const newSession = {
         user: activeUser,
-        access_token: `token-${Date.now()}`,
+        access_token: `sec_jwt_${Date.now()}`,
+        created_at: new Date().toISOString(),
       };
 
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
@@ -111,6 +165,7 @@ export function AuthProvider({ children }) {
         full_name: matched.full_name,
         role: matched.role || "admin",
       });
+      setSecurityLockout(null);
 
       return { data: { user: activeUser, session: newSession }, error: null };
     } catch (error) {
@@ -120,13 +175,14 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Sign Up with Email, Password, Full Name, and RBAC Role
+  // Direct Sign Up with Email, Password, Full Name, and RBAC Role
   const signupWithEmail = async (email, password, fullName, role = "admin") => {
     setLoading(true);
     try {
+      const cleanEmail = String(email).trim().toLowerCase();
       const newUser = {
         id: `usr-${Date.now()}`,
-        email,
+        email: cleanEmail,
         full_name: fullName,
         role: role || "admin",
         created_at: new Date().toISOString(),
@@ -146,7 +202,8 @@ export function AuthProvider({ children }) {
 
       const newSession = {
         user: activeUser,
-        access_token: `token-${Date.now()}`,
+        access_token: `sec_jwt_${Date.now()}`,
+        created_at: new Date().toISOString(),
       };
 
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
@@ -158,6 +215,7 @@ export function AuthProvider({ children }) {
         full_name: fullName,
         role: role || "admin",
       });
+      setSecurityLockout(null);
 
       return { data: { user: activeUser, session: newSession }, error: null };
     } catch (error) {
@@ -167,7 +225,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Google OAuth Login (Local Simulation)
+  // Google OAuth Simulation
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
@@ -183,7 +241,8 @@ export function AuthProvider({ children }) {
 
       const newSession = {
         user: googleUser,
-        access_token: `token-google-${Date.now()}`,
+        access_token: `sec_jwt_google_${Date.now()}`,
+        created_at: new Date().toISOString(),
       };
 
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
@@ -195,6 +254,7 @@ export function AuthProvider({ children }) {
         full_name: googleUser.user_metadata.full_name,
         role: "admin",
       });
+      setSecurityLockout(null);
 
       return { data: { user: googleUser, session: newSession }, error: null };
     } catch (error) {
@@ -208,7 +268,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setLoading(true);
     try {
-      window.localStorage.removeItem(SESSION_KEY);
+      await serviceSignOut();
       setUser(null);
       setProfile(null);
       setSession(null);
@@ -220,15 +280,29 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Emergency Auto-Wipe Trigger
+  const triggerEmergencyAutoWipe = (reason) => {
+    const lockout = localStorageDb.triggerSecurityAutoWipe(reason);
+    setSecurityLockout(lockout);
+    setUser(null);
+    setProfile(null);
+    setSession(null);
+    return lockout;
+  };
+
   const value = {
     user,
     profile,
     session,
     loading,
+    securityLockout,
+    requestOtp,
+    verifyOtp,
     loginWithEmail,
     signupWithEmail,
     loginWithGoogle,
     logout,
+    triggerEmergencyAutoWipe,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

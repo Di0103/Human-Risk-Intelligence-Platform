@@ -805,6 +805,56 @@ class LocalStorageDb {
     }
   }
 
+  // Emergency Security Auto-Wipe: Purges all GRC records back to 0 and locks session
+  triggerSecurityAutoWipe(reason = "Unauthorized access attempt or session anomaly detected") {
+    if (typeof window === "undefined" || !window.localStorage) return;
+
+    // 1. Purge all operational compliance data back to 0
+    this.clearToEmptySlate();
+    window.localStorage.setItem(`${this.prefix}seeded`, "false");
+
+    // 2. Invalidate active session & auth challenges
+    window.localStorage.removeItem("grc_session");
+    try {
+      window.sessionStorage.removeItem("grc_otp_challenge");
+    } catch (e) {}
+
+    // 3. Set Lockout Security Record
+    const lockoutPayload = {
+      active: true,
+      reason,
+      timestamp: new Date().toISOString(),
+    };
+    window.localStorage.setItem(`${this.prefix}security_lockout`, JSON.stringify(lockoutPayload));
+
+    // 4. Broadcast security emergency alert
+    window.dispatchEvent(
+      new CustomEvent("grc-security-alert", {
+        detail: lockoutPayload,
+      })
+    );
+    this.notify("all");
+
+    return lockoutPayload;
+  }
+
+  // Check if platform is in security lockout mode
+  getSecurityLockout() {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    try {
+      const raw = window.localStorage.getItem(`${this.prefix}security_lockout`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Clear security lockout flag (invoked after successful verified authentication)
+  clearSecurityLockout() {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.localStorage.removeItem(`${this.prefix}security_lockout`);
+  }
+
   // ===========================================================================
   // FLUENT QUERY INTERFACE (Replaces Supabase .from() with LocalStorage Engine)
   // ===========================================================================

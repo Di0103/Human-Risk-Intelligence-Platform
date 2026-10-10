@@ -92,6 +92,22 @@ function Profile() {
     }
   };
 
+  // Emergency Security Auto-Wipe & Lockout
+  const handleEmergencySecurityAutoWipe = () => {
+    if (
+      !window.confirm(
+        "EMERGENCY SECURITY ACTION: Are you sure you want to trigger a Security Auto-Wipe? This will immediately purge all local compliance records to a clean 0-record state, terminate active session tokens, and lock the platform."
+      )
+    ) {
+      return;
+    }
+
+    localStorageDb.triggerSecurityAutoWipe(
+      "Manual Administrator Security Action: Emergency Lockout Activated"
+    );
+    logout();
+  };
+
   return (
     <div className="space-y-6 max-w-4xl font-sans">
       {/* Toast Feedback */}
@@ -253,7 +269,7 @@ function Profile() {
         </div>
 
         {/* Workspace Management Controls */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 flex-wrap">
           <button
             type="button"
             onClick={handleResetTenantData}
@@ -272,6 +288,16 @@ function Profile() {
           >
             <FiLayers className={seeding ? "animate-spin" : ""} />
             <span>{seeding ? "Seeding Template..." : "Seed Enterprise Starter Pack"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleEmergencySecurityAutoWipe}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/50 rounded-xl text-xs font-semibold transition shadow-lg shadow-red-950/40"
+            title="Purge all local compliance data and lock platform immediately"
+          >
+            <FiShield className="text-red-400" />
+            <span>Emergency Security Auto-Wipe & Lock</span>
           </button>
         </div>
       </div>
