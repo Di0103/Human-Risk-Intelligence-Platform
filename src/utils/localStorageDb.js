@@ -642,10 +642,10 @@ class LocalStorageDb {
     if (typeof window === "undefined" || !window.localStorage) return;
 
     // Strict 0-records enforcement: purge any legacy auto-seeded mock data from prior builds
-    const isCleanSlate = window.localStorage.getItem(`${this.prefix}strict_zero_slate_v3`);
+    const isCleanSlate = window.localStorage.getItem(`${this.prefix}strict_zero_slate_v4`);
     if (!isCleanSlate) {
       this.clearToEmptySlate();
-      window.localStorage.setItem(`${this.prefix}strict_zero_slate_v3`, "true");
+      window.localStorage.setItem(`${this.prefix}strict_zero_slate_v4`, "true");
       window.localStorage.setItem(`${this.prefix}seeded`, "false");
     }
   }
