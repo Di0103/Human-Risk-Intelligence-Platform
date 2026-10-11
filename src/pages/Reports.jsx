@@ -1381,7 +1381,7 @@ const Reports = () => {
             <div>
               <span className="text-slate-500 font-semibold block mb-1 print:text-slate-700">AUDIT STATEMENT</span>
               <p className="text-slate-300 italic print:text-slate-800">
-                "I hereby attest that the figures and data points in this report represent an exact, unfiltered reflection of our organization's risk register, ISO 27001 safeguard mappings, and staff policy acknowledgements as recorded in our live GRC platform."
+                "I hereby attest that the figures and data points in this report represent an exact, unfiltered reflection of our organization's risk register, ISO 27001 safeguard mappings, and staff policy acknowledgements as recorded in our live ARMOUR platform."
               </p>
               <div className="flex items-center gap-2 mt-2 text-emerald-400 font-medium print:text-emerald-700">
                 <FiCheckCircle className="w-4 h-4" />

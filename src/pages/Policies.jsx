@@ -2619,7 +2619,7 @@ export function Policies() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-bold text-white tracking-tight">
-                      Policy Document Review, Scoring &amp; Suggestions Engine
+                      ARMOUR Policy Document Review, Scoring &amp; Suggestions Engine
                     </h2>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
                       LIVE ANALYZER

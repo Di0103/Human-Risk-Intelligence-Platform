@@ -788,7 +788,7 @@ const Dashboard = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-white tracking-tight">
-                  Real-Time Threat Intelligence & Human Risk Exposure Telemetry
+                  ARMOUR Real-Time Threat Intelligence &amp; Workforce Risk Exposure Telemetry
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
                   Live Radar
@@ -863,7 +863,7 @@ const Dashboard = () => {
           <div className="lg:col-span-4 bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <FiCrosshair className="text-indigo-400" /> Human Risk Exposure Index (HREI)
+                <FiCrosshair className="text-indigo-400" /> ARMOUR Human Risk Exposure Index (HREI)
               </span>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${

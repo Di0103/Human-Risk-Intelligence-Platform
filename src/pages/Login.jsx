@@ -21,7 +21,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
-import { ArmourLogo } from "../components/common/ArmourLogo";
+import BrandLogo from "@/assets/shield-scales-logo.png";
 
 export function Login({ defaultSignUp = false }) {
   const navigate = useNavigate();
@@ -328,8 +328,12 @@ export function Login({ defaultSignUp = false }) {
 
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center z-10 px-4">
-        <div className="inline-flex items-center justify-center p-3 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl shadow-xl shadow-blue-500/20 mb-3 border border-blue-400/30">
-          <ArmourLogo className="w-12 h-12" />
+        <div className="inline-flex items-center justify-center p-3.5 bg-slate-900/90 rounded-3xl shadow-2xl shadow-blue-500/20 mb-3 border border-blue-500/30">
+          <img
+            src={BrandLogo}
+            alt="ARMOUR Shield and Scales Brand Logo"
+            className="w-auto h-16 object-contain drop-shadow-[0_4px_16px_rgba(59,130,246,0.5)] transition-transform hover:scale-105"
+          />
         </div>
         <h2 className="text-3xl font-black text-white tracking-wider uppercase font-sans">
           ARMOUR

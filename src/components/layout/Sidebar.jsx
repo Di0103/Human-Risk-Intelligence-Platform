@@ -15,7 +15,7 @@ import {
   FiUser,
   FiBarChart2,
 } from "react-icons/fi";
-import { ArmourLogo } from "../common/ArmourLogo";
+import BrandLogo from "@/assets/shield-scales-logo.png";
 
 export function Sidebar() {
   const { user, profile, logout } = useAuth();
@@ -45,7 +45,7 @@ export function Sidebar() {
   const fullName =
     profile?.full_name ||
     user?.user_metadata?.full_name ||
-    (user?.email ? user.email.split("@")[0] : "GRC User");
+    (user?.email ? user.email.split("@")[0] : "ARMOUR User");
   const email = user?.email || "";
 
   const getRoleBadgeStyle = (r) => {
@@ -70,7 +70,11 @@ export function Sidebar() {
       {/* 1. Brand Logo Header */}
       <div>
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-800/80 bg-slate-950/40">
-          <ArmourLogo className="w-8 h-8" />
+          <img
+            src={BrandLogo}
+            alt="ARMOUR Brand Logo"
+            className="w-auto h-10 object-contain drop-shadow-[0_2px_8px_rgba(59,130,246,0.3)] shrink-0"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="text-sm font-black text-white tracking-wider uppercase font-sans">
@@ -81,7 +85,7 @@ export function Sidebar() {
               </span>
             </div>
             <p className="text-[9px] text-slate-400 font-medium tracking-tight truncate leading-tight mt-0.5" title="Audit, Risk Mapping & Organizational Unified Remediation">
-              Audit, Risk Mapping & Remediation
+              Audit, Risk Mapping &amp; Remediation
             </p>
           </div>
         </div>
