@@ -763,7 +763,7 @@ const Dashboard = () => {
             Welcome, {fullName} 👋
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Human-Centric Governance, Risk & Compliance Overview
+            ARMOUR (Audit, Risk Mapping &amp; Organizational Unified Remediation) Governance, Risk &amp; Compliance Overview
           </p>
         </div>
         <span className="text-xs font-mono text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg w-fit">

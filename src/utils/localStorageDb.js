@@ -1,5 +1,5 @@
 // =============================================================================
-// HUMAN-CENTRIC GRC MANAGEMENT PLATFORM
+// ARMOUR (Audit, Risk Mapping & Organizational Unified Remediation)
 // LocalStorage-Driven Enterprise State & Persistence Engine
 // File: src/utils/localStorageDb.js
 // Standards: ISO/IEC 27001:2022 | COBIT 2019 | IT Act 2000 | DPDP Act 2023 | ISO 22301:2019

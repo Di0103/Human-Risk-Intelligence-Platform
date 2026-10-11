@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ArmourLogo } from "../components/common/ArmourLogo";
 
 const Home = () => {
   const modules = [
@@ -51,16 +52,25 @@ const Home = () => {
       <div className="bg-slate-900 border-b border-slate-800 py-16 sm:py-20 relative overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/15 rounded-full blur-[128px] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
-          <span className="px-3.5 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full text-xs font-semibold uppercase tracking-wider inline-block mb-4">
-            Enterprise Governance, Risk & Compliance Platform
+          <div className="flex justify-center mb-5">
+            <div className="inline-flex items-center justify-center p-3.5 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl shadow-xl shadow-blue-500/20 border border-blue-400/30">
+              <ArmourLogo className="w-14 h-14" />
+            </div>
+          </div>
+
+          <span className="px-3.5 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full text-xs font-semibold uppercase tracking-wider inline-block mb-3">
+            Enterprise Governance, Risk &amp; Compliance Platform
           </span>
 
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            Human-Centric GRC Management Platform
+          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-wider uppercase mb-2 font-sans">
+            ARMOUR
           </h1>
+          <p className="text-lg sm:text-xl font-semibold text-blue-400 max-w-3xl mx-auto mb-4">
+            Audit, Risk Mapping &amp; Organizational Unified Remediation
+          </p>
 
           <p className="text-base sm:text-lg text-slate-400 max-w-3xl mx-auto">
-            A unified, audit-ready platform for continuous compliance monitoring, ISO 27001 / SOC 2 control mappings, risk assessment, employee security training, and executive reporting.
+            A unified, audit-ready platform for continuous compliance monitoring, ISO 27001 / DPDP Act / SOC 2 control mappings, risk assessment, employee security training, and executive reporting.
           </p>
 
           <div className="mt-8 flex justify-center gap-4">
@@ -157,7 +167,7 @@ const Home = () => {
 
       {/* Footer */}
       <footer className="bg-slate-950 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        © 2026 Human-Centric GRC Platform • Minor Project Phase 1 • React, Tailwind CSS & Local Enterprise State
+        © 2026 ARMOUR (Audit, Risk Mapping &amp; Organizational Unified Remediation) • Enterprise GRC Management Platform
       </footer>
     </div>
   );

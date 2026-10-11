@@ -219,7 +219,7 @@ function Profile() {
         {/* Action Buttons */}
         <div className="mt-8 pt-6 border-t border-slate-800 flex items-center justify-between">
           <p className="text-xs text-slate-500">
-            Human Risk Intelligence Platform • Enterprise GRC v1.0
+            ARMOUR (Audit, Risk Mapping &amp; Organizational Unified Remediation) • Enterprise GRC v1.0
           </p>
 
           <button

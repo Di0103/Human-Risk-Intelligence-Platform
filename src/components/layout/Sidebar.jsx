@@ -15,6 +15,7 @@ import {
   FiUser,
   FiBarChart2,
 } from "react-icons/fi";
+import { ArmourLogo } from "../common/ArmourLogo";
 
 export function Sidebar() {
   const { user, profile, logout } = useAuth();
@@ -68,16 +69,19 @@ export function Sidebar() {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between flex-shrink-0 min-h-screen text-slate-300 select-none print:hidden">
       {/* 1. Brand Logo Header */}
       <div>
-        <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800/80 bg-slate-950/40">
-          <div className="p-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl text-white shadow-md shadow-blue-500/20">
-            <FiShield className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-white tracking-tight leading-tight">
-              Human-Centric GRC
-            </h1>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">
-              Management Platform
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-800/80 bg-slate-950/40">
+          <ArmourLogo className="w-8 h-8" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm font-black text-white tracking-wider uppercase font-sans">
+                ARMOUR
+              </h1>
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">
+                GRC
+              </span>
+            </div>
+            <p className="text-[9px] text-slate-400 font-medium tracking-tight truncate leading-tight mt-0.5" title="Audit, Risk Mapping & Organizational Unified Remediation">
+              Audit, Risk Mapping & Remediation
             </p>
           </div>
         </div>

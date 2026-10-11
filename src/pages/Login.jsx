@@ -21,6 +21,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
+import { ArmourLogo } from "../components/common/ArmourLogo";
 
 export function Login({ defaultSignUp = false }) {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ export function Login({ defaultSignUp = false }) {
   const [countdown, setCountdown] = useState(300); // 5 minutes
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [showDevCode, setShowDevCode] = useState(false);
+  const [dispatchStatus, setDispatchStatus] = useState("");
 
   const otpInputRefs = useRef([]);
 
@@ -111,24 +113,29 @@ export function Login({ defaultSignUp = false }) {
     }
 
     setLoading(true);
+    setDispatchStatus(`Simulating SMTP Relay TLS 1.3 Dispatch to ${cleanEmail}...`);
 
     try {
       // Dispatches 6-digit OTP Challenge to email (Mandatory for all sessions)
       const res = await requestOtp(cleanEmail);
       if (res.error) {
         setErrorMsg(res.error.message || "Failed to generate security code.");
+        setDispatchStatus("");
         setLoading(false);
         return;
       }
 
+      const statusMsg =
+        res.data?.statusMessage ||
+        `Secure authentication code dispatched via SMTP Relay to ${cleanEmail}. Please check your inbox.`;
+      setDispatchStatus(statusMsg);
       setGeneratedOtp(res.data.code);
       setOtpDigits(["", "", "", "", "", ""]);
       setOtpCode("");
+      setShowDevCode(false);
       setCountdown(300);
       setAuthStep("otp_verification");
-      setSuccessMsg(
-        `A 6-digit authentication code has been dispatched to ${cleanEmail}. Please check your inbox.`
-      );
+      setSuccessMsg(statusMsg);
 
       // Auto focus first OTP input
       setTimeout(() => {
@@ -138,6 +145,7 @@ export function Login({ defaultSignUp = false }) {
       }, 150);
     } catch (err) {
       setErrorMsg(err.message || "An unexpected error occurred.");
+      setDispatchStatus("");
     } finally {
       setLoading(false);
     }
@@ -192,19 +200,28 @@ export function Login({ defaultSignUp = false }) {
   const handleResendOtp = async () => {
     setErrorMsg("");
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    setDispatchStatus(`Simulating SMTP Relay TLS 1.3 Dispatch to ${cleanEmail}...`);
     try {
-      const res = await requestOtp(email.trim().toLowerCase());
+      const res = await requestOtp(cleanEmail);
       if (res.error) {
         setErrorMsg(res.error.message);
+        setDispatchStatus("");
       } else {
+        const statusMsg =
+          res.data?.statusMessage ||
+          `Secure authentication code dispatched via SMTP Relay to ${cleanEmail}. Please check your inbox.`;
+        setDispatchStatus(statusMsg);
         setGeneratedOtp(res.data.code);
         setCountdown(300);
         setOtpDigits(["", "", "", "", "", ""]);
         setOtpCode("");
-        setSuccessMsg("Fresh 6-digit verification code dispatched!");
+        setShowDevCode(false);
+        setSuccessMsg(statusMsg);
       }
     } catch {
       setErrorMsg("Failed to resend code.");
+      setDispatchStatus("");
     } finally {
       setLoading(false);
     }
@@ -271,19 +288,24 @@ export function Login({ defaultSignUp = false }) {
       setFullName("Alex Turner (Google SSO)");
       setRole("admin");
       setIsSignUp(false);
+      setDispatchStatus(`Simulating SMTP Relay TLS 1.3 Dispatch to ${googleEmail}...`);
 
       const res = await requestOtp(googleEmail);
       if (res.error) {
         setErrorMsg(res.error.message || "Failed to initiate verification.");
+        setDispatchStatus("");
       } else {
+        const statusMsg =
+          res.data?.statusMessage ||
+          `Secure authentication code dispatched via SMTP Relay to ${googleEmail}. Please check your inbox.`;
+        setDispatchStatus(statusMsg);
         setGeneratedOtp(res.data.code);
         setOtpDigits(["", "", "", "", "", ""]);
         setOtpCode("");
+        setShowDevCode(false);
         setCountdown(300);
         setAuthStep("otp_verification");
-        setSuccessMsg(
-          "Google SSO identity recognized! A 6-digit authentication code has been dispatched to your email address. Please check your inbox."
-        );
+        setSuccessMsg(statusMsg);
         setTimeout(() => {
           if (otpInputRefs.current[0]) {
             otpInputRefs.current[0].focus();
@@ -292,6 +314,7 @@ export function Login({ defaultSignUp = false }) {
       }
     } catch {
       setErrorMsg("Google SSO authentication challenge failed.");
+      setDispatchStatus("");
     } finally {
       setLoading(false);
     }
@@ -305,12 +328,15 @@ export function Login({ defaultSignUp = false }) {
 
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center z-10 px-4">
-        <div className="inline-flex items-center justify-center p-3 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl shadow-xl shadow-blue-500/20 mb-3 border border-blue-400/30">
-          <FiShield className="w-8 h-8 text-white" />
+        <div className="inline-flex items-center justify-center p-3 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl shadow-xl shadow-blue-500/20 mb-3 border border-blue-400/30">
+          <ArmourLogo className="w-12 h-12" />
         </div>
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">
-          Human Risk Intelligence Platform
+        <h2 className="text-3xl font-black text-white tracking-wider uppercase font-sans">
+          ARMOUR
         </h2>
+        <p className="mt-1 text-xs font-semibold text-blue-400 tracking-tight">
+          Audit, Risk Mapping &amp; Organizational Unified Remediation
+        </p>
         <p className="mt-1 text-xs text-slate-400">
           Zero-Trust GRC Governance • Adaptive OTP Authentication • Auto-Wipe Guard
         </p>
@@ -498,7 +524,7 @@ export function Login({ defaultSignUp = false }) {
                         </span>
                       </p>
                       <p className="text-[10px] text-slate-400">
-                        Dispatches a simulated 6-digit verification code to authenticate.
+                        Dispatches a 6-digit verification code via simulated SMTP Relay TLS 1.3.
                       </p>
                     </div>
                   </div>
@@ -513,7 +539,10 @@ export function Login({ defaultSignUp = false }) {
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/20 transition disabled:opacity-50"
                   >
                     {loading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="font-mono text-[11px]">Simulating SMTP Relay TLS 1.3 Dispatch...</span>
+                      </div>
                     ) : (
                       <>
                         <span>Generate & Send Verification Code (OTP)</span>
@@ -588,22 +617,32 @@ export function Login({ defaultSignUp = false }) {
                 </p>
               </div>
 
-              {/* Clean Professional Mail Dispatch Notice */}
+              {/* Clean Simulated SMTP Dispatch Notice */}
               <div className="p-4 bg-slate-850/80 border border-slate-750 rounded-xl space-y-2.5 shadow-sm bg-gradient-to-br from-slate-900 to-slate-850">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 text-slate-200 font-medium">
                     <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
                       <FiMail className="w-3.5 h-3.5" />
                     </div>
-                    <span>Authentication Code Dispatched</span>
+                    <span>SMTP Relay Dispatch</span>
                   </div>
                   <span className="font-mono text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
                     <FiClock /> Expires in {formatCountdown(countdown)}
                   </span>
                 </div>
 
+                {/* Live Realistic Status Banner */}
+                <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                  <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <span className="leading-relaxed">
+                      {dispatchStatus || `Secure authentication code dispatched via SMTP Relay to ${email}. Please check your inbox.`}
+                    </span>
+                  </div>
+                </div>
+
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  A 6-digit authentication code has been dispatched to your email address (<strong>{email}</strong>). Please check your inbox.
+                  Secure authentication code dispatched via SMTP Relay to <strong>{email}</strong>. Please check your inbox.
                 </p>
 
                 {/* Discreet Evaluator / Developer Helper Toggle */}

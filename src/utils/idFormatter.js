@@ -2,7 +2,7 @@
  * ID & Code Formatter Utility
  * Provides clean sequential display indexing and formatted serial codes
  * (e.g., DEPT-001, EMP-001, POL-001, RSK-001, TRN-001, ASM-001)
- * across the Human Risk Intelligence Platform tables.
+ * across ARMOUR GRC tables.
  */
 
 /**

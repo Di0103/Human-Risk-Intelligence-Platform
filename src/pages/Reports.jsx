@@ -736,10 +736,10 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-black tracking-wider uppercase text-slate-900">
-                Human-Centric GRC Management Platform
+                ARMOUR — Enterprise GRC Management Platform
               </h1>
               <p className="text-xs text-slate-700 font-semibold">
-                Minor Project Phase 1 — Information Security & Compliance Governance Report
+                Audit, Risk Mapping &amp; Organizational Unified Remediation (Phase 1 Report)
               </p>
             </div>
             <div className="text-right">

@@ -1,14 +1,9 @@
+import React from "react";
+
 function Footer() {
   return (
-    <footer
-      style={{
-        background: "#1e293b",
-        color: "white",
-        textAlign: "center",
-        padding: "15px",
-      }}
-    >
-      © 2026 Human Risk Management System | Developed by Team
+    <footer className="bg-slate-900 text-slate-400 text-center py-4 text-xs border-t border-slate-800">
+      © 2026 ARMOUR (Audit, Risk Mapping &amp; Organizational Unified Remediation) • Enterprise GRC Management Platform
     </footer>
   );
 }
