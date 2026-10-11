@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { localStorageDb } from "../utils/localStorageDb";
 import {
@@ -18,6 +19,7 @@ import {
 } from "react-icons/fi";
 
 function Profile() {
+  const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
   const [resetting, setResetting] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -93,7 +95,7 @@ function Profile() {
   };
 
   // Emergency Security Auto-Wipe & Lockout
-  const handleEmergencySecurityAutoWipe = () => {
+  const handleEmergencySecurityAutoWipe = async () => {
     if (
       !window.confirm(
         "EMERGENCY SECURITY ACTION: Are you sure you want to trigger a Security Auto-Wipe? This will immediately purge all local compliance records to a clean 0-record state, terminate active session tokens, and lock the platform."
@@ -105,7 +107,8 @@ function Profile() {
     localStorageDb.triggerSecurityAutoWipe(
       "Manual Administrator Security Action: Emergency Lockout Activated"
     );
-    logout();
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -220,7 +223,10 @@ function Profile() {
           </p>
 
           <button
-            onClick={() => logout()}
+            onClick={async () => {
+              await logout();
+              navigate("/login", { replace: true });
+            }}
             className="inline-flex items-center gap-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 px-4 py-2 rounded-lg text-sm font-semibold transition"
           >
             <FiLogOut className="w-4 h-4" />

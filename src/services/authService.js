@@ -14,9 +14,9 @@ export const isValidEmail = (email) => {
 export const getBrowserFingerprint = () => {
   if (typeof window === "undefined") return "server-env";
   const userAgent = navigator.userAgent || "unknown-ua";
-  const screenRes = `${window.screen?.width || 0}x${window.screen?.height || 0}`;
+  const lang = navigator.language || "en";
   const tz = Intl?.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
-  return btoa(`${userAgent}::${screenRes}::${tz}`).slice(0, 32);
+  return btoa(`${userAgent}::${lang}::${tz}`).slice(0, 32);
 };
 
 // Generate 6-Digit OTP challenge
@@ -198,6 +198,7 @@ export const verifyOtp = async (email, inputCode, metadata = {}) => {
   }
 
   const fingerprint = getBrowserFingerprint();
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours validity
   const sessionToken = `sec_jwt_${btoa(
     JSON.stringify({
       uid: user.id,
@@ -205,7 +206,7 @@ export const verifyOtp = async (email, inputCode, metadata = {}) => {
       role: user.role,
       fp: fingerprint,
       iat: Date.now(),
-      exp: Date.now() + 24 * 60 * 60 * 1000,
+      exp: expiresAt,
     })
   )}`;
 
@@ -213,10 +214,17 @@ export const verifyOtp = async (email, inputCode, metadata = {}) => {
     user,
     access_token: sessionToken,
     fingerprint,
+    expires_at: expiresAt,
     created_at: new Date().toISOString(),
   };
 
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("grc-auth-state-change", { detail: { session, user } })
+    );
+  }
 
   localStorageDb.logAudit({
     action: "AUTH_LOGIN_SUCCESS",
@@ -306,22 +314,100 @@ export const signOut = async () => {
   } catch (e) {}
 
   window.localStorage.removeItem(SESSION_KEY);
+  try {
+    window.sessionStorage.removeItem(OTP_CHALLENGE_KEY);
+    window.localStorage.removeItem(OTP_CHALLENGE_KEY);
+  } catch (e) {}
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("grc-auth-state-change", { detail: { session: null, user: null } })
+    );
+    window.dispatchEvent(
+      new CustomEvent("grc-storage-update", { detail: { collection: "users" } })
+    );
+  }
+
   return { error: null };
 };
 
-// Validate Session Integrity (Detects session hijacking or device handover)
+// Validate Session Integrity (Detects session hijacking, expiration, or invalid structures)
 export const validateSessionIntegrity = () => {
-  if (typeof window === "undefined") return { valid: true };
+  if (typeof window === "undefined" || !window.localStorage) return { valid: false };
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
-    if (!raw) return { valid: false };
-    const parsed = JSON.parse(raw);
-    if (!parsed?.access_token || !parsed?.user) return { valid: false };
+    if (!raw) return { valid: false, reason: "NO_SESSION" };
 
-    // Fingerprint verification
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      window.localStorage.removeItem(SESSION_KEY);
+      return { valid: false, reason: "CORRUPT_SESSION" };
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      window.localStorage.removeItem(SESSION_KEY);
+      return { valid: false, reason: "INVALID_SESSION_OBJECT" };
+    }
+
+    // 1. Structure validation
+    if (!parsed.access_token || !parsed.user || !parsed.user.id || !parsed.user.email) {
+      window.localStorage.removeItem(SESSION_KEY);
+      return { valid: false, reason: "INCOMPLETE_CREDENTIALS" };
+    }
+
+    const now = Date.now();
+
+    // 2. Expiration check on session.expires_at
+    if (parsed.expires_at && now > Number(parsed.expires_at)) {
+      window.localStorage.removeItem(SESSION_KEY);
+      localStorageDb.logAudit({
+        action: "AUTH_SESSION_EXPIRED",
+        category: "Authentication",
+        entity: "Session",
+        details: `Session for ${parsed.user.email} expired and was automatically purged.`,
+        actor: parsed.user.email,
+        severity: "info",
+      });
+      return { valid: false, expired: true, reason: "EXPIRED_SESSION" };
+    }
+
+    // 3. Expiration check on session.created_at (24h maximum lifetime)
+    if (parsed.created_at) {
+      const sessionAge = now - new Date(parsed.created_at).getTime();
+      const MAX_AGE = 24 * 60 * 60 * 1000;
+      if (sessionAge > MAX_AGE) {
+        window.localStorage.removeItem(SESSION_KEY);
+        localStorageDb.logAudit({
+          action: "AUTH_SESSION_EXPIRED",
+          category: "Authentication",
+          entity: "Session",
+          details: `Session for ${parsed.user.email} exceeded 24-hour lifetime and was purged.`,
+          actor: parsed.user.email,
+          severity: "info",
+        });
+        return { valid: false, expired: true, reason: "EXPIRED_LIFETIME" };
+      }
+    }
+
+    // 4. Token payload expiration check for JWTs
+    if (typeof parsed.access_token === "string" && parsed.access_token.startsWith("sec_jwt_")) {
+      try {
+        const b64 = parsed.access_token.replace(/^sec_jwt_/, "");
+        if (b64.length > 20 && !/^\d+$/.test(b64)) {
+          const payload = JSON.parse(atob(b64));
+          if (payload?.exp && now > Number(payload.exp)) {
+            window.localStorage.removeItem(SESSION_KEY);
+            return { valid: false, expired: true, reason: "TOKEN_EXPIRED" };
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 5. Browser fingerprint verification (Detect multi-device handover or session hijacking)
     const currentFp = getBrowserFingerprint();
     if (parsed.fingerprint && parsed.fingerprint !== currentFp) {
-      // Fingerprint anomaly detected! Multi-device handover or session hijack signature
       localStorageDb.logAudit({
         action: "AUTH_SESSION_HIJACK_DETECTED",
         category: "System Security",
@@ -333,11 +419,15 @@ export const validateSessionIntegrity = () => {
       localStorageDb.triggerSecurityAutoWipe(
         "Multi-Device Session Anomaly / Fingerprint Mismatch Detected"
       );
-      return { valid: false, hijacked: true };
+      window.localStorage.removeItem(SESSION_KEY);
+      return { valid: false, hijacked: true, reason: "FINGERPRINT_MISMATCH" };
     }
 
     return { valid: true, user: parsed.user, session: parsed };
   } catch (e) {
+    try {
+      window.localStorage.removeItem(SESSION_KEY);
+    } catch (err) {}
     return { valid: false };
   }
 };

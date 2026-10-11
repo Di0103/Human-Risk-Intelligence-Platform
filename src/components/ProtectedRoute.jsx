@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { validateSessionIntegrity } from "../services/authService";
 import { FiShield, FiAlertTriangle, FiArrowLeft } from "react-icons/fi";
 
 /**
@@ -9,7 +10,7 @@ import { FiShield, FiAlertTriangle, FiArrowLeft } from "react-icons/fi";
  * @param {Array<string>} [allowedRoles] - Optional list of authorized roles: ['admin', 'compliance_officer', 'employee']
  */
 export function ProtectedRoute({ children, allowedRoles }) {
-  const { user, profile, loading } = useAuth();
+  const { user, session, profile, loading } = useAuth();
   const location = useLocation();
 
   // 1. Loading State
@@ -18,14 +19,26 @@ export function ProtectedRoute({ children, allowedRoles }) {
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-slate-400 font-medium tracking-wide">
-          Verifying security credentials & session...
+          Verifying zero-trust credentials & session...
         </p>
       </div>
     );
   }
 
-  // 2. Unauthenticated: Redirect to login
-  if (!user) {
+  // 2. Unauthenticated: Strict lockdown & redirect to login
+  if (!user || !session) {
+    if (typeof window !== "undefined") {
+      const integrity = validateSessionIntegrity();
+      if (!integrity.valid) {
+        window.localStorage.removeItem("grc_session");
+      }
+    }
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // 3. Runtime Verification of Session Storage Integrity & Expiry
+  const integrity = validateSessionIntegrity();
+  if (!integrity.valid) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

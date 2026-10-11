@@ -22,7 +22,7 @@ export function Sidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const navItems = [

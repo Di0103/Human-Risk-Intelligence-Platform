@@ -33,35 +33,77 @@ export function AuthProvider({ children }) {
 
   // Initialize Auth State from LocalStorage
   useEffect(() => {
-    try {
-      const integrity = validateSessionIntegrity();
-      if (integrity.valid && integrity.user) {
-        setUser(integrity.user);
-        setSession(integrity.session);
-        setProfile({
-          id: integrity.user.id,
-          email: integrity.user.email,
-          full_name:
-            integrity.user.user_metadata?.full_name ||
-            integrity.user.full_name ||
-            integrity.user.email.split("@")[0],
-          role:
-            integrity.user.user_metadata?.role ||
-            integrity.user.role ||
-            "admin",
-        });
+    const syncAuthState = () => {
+      try {
+        const integrity = validateSessionIntegrity();
+        if (integrity.valid && integrity.user && integrity.session) {
+          setUser(integrity.user);
+          setSession(integrity.session);
+          setProfile({
+            id: integrity.user.id,
+            email: integrity.user.email,
+            full_name:
+              integrity.user.user_metadata?.full_name ||
+              integrity.user.full_name ||
+              integrity.user.email.split("@")[0],
+            role:
+              integrity.user.user_metadata?.role ||
+              integrity.user.role ||
+              "admin",
+          });
+        } else {
+          // Strictly wipe unauthenticated, corrupt, or expired sessions
+          window.localStorage.removeItem(SESSION_KEY);
+          try {
+            window.sessionStorage.removeItem("grc_otp_challenge");
+            window.localStorage.removeItem("grc_otp_challenge");
+          } catch (err) {}
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+        }
+      } catch (e) {
+        console.warn("Failed to validate local auth session:", e);
+        try {
+          window.localStorage.removeItem(SESSION_KEY);
+        } catch (err) {}
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    syncAuthState();
+
+    // Cross-tab synchronization via native 'storage' event
+    const handleStorageChange = (e) => {
+      if (e.key === SESSION_KEY) {
+        syncAuthState();
+      }
+    };
+
+    // Instant intra-page session update listener
+    const handleAuthStateChange = (e) => {
+      if (!e.detail?.session) {
+        setUser(null);
+        setSession(null);
+        setProfile(null);
       } else {
-        // No auto-login: Unauthenticated visitors must land on the Login screen
+        syncAuthState();
+      }
+    };
+
+    // Periodic heartbeat (every 30s) to enforce expiration and integrity
+    const heartbeatInterval = setInterval(() => {
+      const integrity = validateSessionIntegrity();
+      if (!integrity.valid) {
         setUser(null);
         setSession(null);
         setProfile(null);
       }
-    } catch (e) {
-      console.warn("Failed to parse local auth session:", e);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    }, 30000);
 
     // Security Alert & Auto-Wipe Listener
     const handleSecurityAlert = (e) => {
@@ -70,10 +112,19 @@ export function AuthProvider({ children }) {
       setUser(null);
       setProfile(null);
       setSession(null);
+      try {
+        window.localStorage.removeItem(SESSION_KEY);
+      } catch (err) {}
     };
 
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("grc-auth-state-change", handleAuthStateChange);
     window.addEventListener("grc-security-alert", handleSecurityAlert);
+
     return () => {
+      clearInterval(heartbeatInterval);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("grc-auth-state-change", handleAuthStateChange);
       window.removeEventListener("grc-security-alert", handleSecurityAlert);
     };
   }, []);
@@ -264,14 +315,31 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Logout
+  // Logout & Strict Storage Cleansing
   const logout = async () => {
     setLoading(true);
     try {
       await serviceSignOut();
+      window.localStorage.removeItem(SESSION_KEY);
+      try {
+        window.sessionStorage.removeItem("grc_otp_challenge");
+        window.localStorage.removeItem("grc_otp_challenge");
+      } catch (e) {}
+
       setUser(null);
       setProfile(null);
       setSession(null);
+
+      // Instantly notify other components and listeners
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("grc-auth-state-change", { detail: { session: null, user: null } })
+        );
+        window.dispatchEvent(
+          new CustomEvent("grc-storage-update", { detail: { collection: "users" } })
+        );
+      }
+
       return { error: null };
     } catch (error) {
       return { error };
@@ -287,6 +355,17 @@ export function AuthProvider({ children }) {
     setUser(null);
     setProfile(null);
     setSession(null);
+    try {
+      window.localStorage.removeItem(SESSION_KEY);
+      window.sessionStorage.removeItem("grc_otp_challenge");
+      window.localStorage.removeItem("grc_otp_challenge");
+    } catch (e) {}
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("grc-auth-state-change", { detail: { session: null, user: null } })
+      );
+    }
     return lockout;
   };
 
