@@ -1,7 +1,7 @@
 // =============================================================================
 // MULTI-FRAMEWORK STATUTORY CLAUSE MAPPING ENGINE
 // File: src/utils/statutoryFrameworks.js
-// Standards: ISO/IEC 27001:2022 | COBIT 2019 | IT Act 2000 (Sec 43A/SPDI) | EU GDPR
+// Standards: ISO/IEC 27001:2022 | COBIT 2019 | IT Act 2000 (Sec 43A/SPDI) | DPDP Act 2023 | ISO 22301:2019
 // =============================================================================
 
 export const STATUTORY_FRAMEWORKS = [
@@ -36,14 +36,24 @@ export const STATUTORY_FRAMEWORKS = [
     jurisdiction: "Indian Cyber Law & MEITY",
   },
   {
-    id: "gdpr",
-    code: "EU-GDPR",
-    name: "EU General Data Protection Regulation",
-    shortName: "EU GDPR",
+    id: "dpdp",
+    code: "DPDP-2023",
+    name: "DPDP Act 2023 (Digital Personal Data Protection Act)",
+    shortName: "DPDP Act 2023",
     badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
     headerColor: "from-emerald-600 to-teal-600",
-    description: "Comprehensive privacy and data protection regulation covering PII processing, consent, and security.",
-    jurisdiction: "European Union & Cross-Border Data Flow",
+    description: "India's statutory data protection legislation governing digital personal data processing, data principal rights, and data fiduciary obligations.",
+    jurisdiction: "Data Protection Board of India (DPBI)",
+  },
+  {
+    id: "iso22301",
+    code: "ISO-22301",
+    name: "ISO 22301:2019 (Business Continuity Management)",
+    shortName: "ISO 22301",
+    badgeColor: "bg-teal-500/10 text-teal-400 border-teal-500/30",
+    headerColor: "from-teal-600 to-cyan-600",
+    description: "International standard for Business Continuity Management Systems (BCMS) specifying requirements for resilience, continuity, and disaster recovery.",
+    jurisdiction: "International Standard (ISO)",
   },
 ];
 
@@ -65,6 +75,11 @@ export const FRAMEWORK_CLAUSES = {
       description: "Management must establish responsive procedures to detect, report, and assess information security incidents timely.",
     },
     {
+      clause: "A.5.29",
+      title: "Information Security During Disruption",
+      description: "Processes and controls must be planned and tested to ensure required levels of security during business disruptions.",
+    },
+    {
       clause: "A.6.7",
       title: "Remote Working & Telework Security",
       description: "Security measures must be implemented when personnel work remotely to protect assets accessed or processed off-premises.",
@@ -73,6 +88,11 @@ export const FRAMEWORK_CLAUSES = {
       clause: "A.8.5",
       title: "Secure Authentication & MFA",
       description: "Secure authentication technologies such as multi-factor authentication (MFA) must be established based on access restrictions.",
+    },
+    {
+      clause: "A.8.14",
+      title: "Redundancy of Information Processing Facilities",
+      description: "Processing facilities must be implemented with redundancy sufficient to meet availability and business continuity requirements.",
     },
     {
       clause: "A.8.20",
@@ -100,6 +120,11 @@ export const FRAMEWORK_CLAUSES = {
       clause: "APO13",
       title: "Managed Security",
       description: "Define, operate, and monitor an information security management system aligned with business impact.",
+    },
+    {
+      clause: "DSS04",
+      title: "Managed Continuity",
+      description: "Establish and maintain a plan to enable business and IT operations to respond to incidents and disruptions.",
     },
     {
       clause: "DSS05",
@@ -139,39 +164,84 @@ export const FRAMEWORK_CLAUSES = {
       description: "Affirms that organizations maintaining ISO/IEC 27001 or equivalent certified security codes fulfill Section 43A statutory duties.",
     },
     {
+      clause: "Section 70B",
+      title: "Mandatory CERT-In Cybersecurity Incident Reporting",
+      description: "Requires designated entities and organizations to report cybersecurity incidents to CERT-In within mandated operational windows.",
+    },
+    {
       clause: "Section 72A",
       title: "Penalty for Disclosure in Breach of Contract",
       description: "Criminal penalty and fines for disclosing personal information without authorization or in breach of lawful contract.",
     },
   ],
-  gdpr: [
+  dpdp: [
     {
-      clause: "Article 5",
-      title: "Principles of Personal Data Processing",
-      description: "Personal data must be processed lawfully, fairly, transparently, with purpose limitation and strict data minimization.",
+      clause: "Section 4",
+      title: "Grounds for Processing Digital Personal Data",
+      description: "Digital personal data must be processed only for lawful purposes for which the Data Principal has given consent or for legitimate uses.",
     },
     {
-      clause: "Article 25",
-      title: "Data Protection by Design & Default",
-      description: "Controllers must implement appropriate technical and organizational measures to integrate data protection principles into processing.",
+      clause: "Section 6",
+      title: "Notice & Consent Architecture",
+      description: "Itemized, accessible notice must precede or accompany consent requests, clearly stating purpose, rights, and grievance mechanisms.",
     },
     {
-      clause: "Article 32",
-      title: "Security of Processing",
-      description: "Technical and organizational measures including pseudonymization, encryption, confidentiality, and regular testing of safeguards.",
+      clause: "Section 8(1)",
+      title: "Data Fiduciary General Obligations",
+      description: "Data Fiduciaries remain accountable for compliance regardless of any third-party processing or data processor engagement.",
     },
     {
-      clause: "Article 33",
-      title: "72-Hour Breach Notification to Authority",
-      description: "In case of a personal data breach, controller must notify the supervisory authority within 72 hours of becoming aware.",
+      clause: "Section 8(5)",
+      title: "Reasonable Security Safeguards",
+      description: "Data Fiduciaries must implement reasonable technical and organizational security safeguards to prevent personal data breaches.",
     },
     {
-      clause: "Article 34",
-      title: "Communication of Breach to Data Subjects",
-      description: "When a breach results in high risk to individuals, controller must inform affected data subjects without undue delay.",
+      clause: "Section 8(6)",
+      title: "Mandatory Personal Data Breach Notification",
+      description: "In the event of a personal data breach, Data Fiduciaries must notify the Data Protection Board of India and each affected Data Principal.",
+    },
+    {
+      clause: "Section 9",
+      title: "Processing of Children's Personal Data",
+      description: "Mandates verifiable parental consent before processing personal data of a child, prohibiting behavioral tracking and targeted advertising.",
+    },
+    {
+      clause: "Section 11",
+      title: "Rights of Data Principals",
+      description: "Guarantees rights to access personal data summary, correction, completion, updating, erasure, and grievance redressal.",
+    },
+  ],
+  iso22301: [
+    {
+      clause: "Clause 8.2",
+      title: "Business Impact Analysis (BIA) & Risk Assessment",
+      description: "Identify critical business activities, evaluate the financial and operational impact of disruptions over time, and establish RTO/RPO metrics.",
+    },
+    {
+      clause: "Clause 8.3",
+      title: "Business Continuity Strategies & Resource Solutions",
+      description: "Determine strategies to protect priority activities, including alternate operating sites, data replication, and redundant suppliers.",
+    },
+    {
+      clause: "Clause 8.4",
+      title: "Business Continuity Plans & Operating Procedures",
+      description: "Document incident response protocols, disaster recovery failover steps, emergency communications, and team responsibilities.",
+    },
+    {
+      clause: "Clause 8.5",
+      title: "Exercise Programme & Disaster Recovery Drills",
+      description: "Conduct scheduled simulated exercises, tabletop tests, and failover validations to ensure continuity strategies remain effective.",
+    },
+    {
+      clause: "Clause 9.1",
+      title: "Monitoring, Measurement, Analysis & Evaluation",
+      description: "Continuously evaluate BCMS performance, test effectiveness, and organizational resilience against statutory standards.",
     },
   ],
 };
+
+// Legacy alias for backward compatibility
+FRAMEWORK_CLAUSES.gdpr = FRAMEWORK_CLAUSES.dpdp;
 
 // =============================================================================
 // MULTI-FRAMEWORK CORRELATION MAPPINGS (PRE-BUILT CROSSWALK)
@@ -182,42 +252,63 @@ export const MULTI_FRAMEWORK_CROSSWALK = [
     iso27001: "Control A.5.15 & A.8.5",
     cobit: "DSS05.04 & DSS05.05 (Identity & Privileged Access)",
     itAct: "Section 43A & Rule 8 (SPDI Access Restrictions)",
-    gdpr: "Article 32(1)(b) & Article 25 (Confidentiality & Access Safeguards)",
+    dpdp: "Section 8(5) (Safeguards against Unauthorized Personal Data Access)",
+    iso22301: "Clause 8.4 (Controlled Access to Critical Disaster Recovery Assets)",
+    gdpr: "Section 8(5) (DPDP Act 2023 / Reasonable Safeguards)",
   },
   {
     domain: "Information Security Policy & Governance",
     iso27001: "Control A.5.1 (InfoSec Policies)",
     cobit: "APO13.01 & EDM03 (Security Governance & Risk Optimization)",
     itAct: "Rule 4 (SPDI Comprehensive Privacy & Security Policy)",
-    gdpr: "Article 24 & Article 5(2) (Accountability & Policy Enforcement)",
+    dpdp: "Section 8(1) (Data Fiduciary Governance & Statutory Duty of Care)",
+    iso22301: "Clause 5.2 & 8.4 (Business Continuity Policy & Procedures)",
+    gdpr: "Section 8(1) (DPDP Act 2023 / Fiduciary Governance)",
   },
   {
     domain: "Personal Data Privacy & Consent",
     iso27001: "Control A.5.34 (Privacy and Protection of PII)",
     cobit: "APO12.06 & MEA01 (Regulatory Conformance Monitoring)",
     itAct: "Rule 4 & Rule 5 (SPDI Notice, Consent & Collection Restrictions)",
-    gdpr: "Article 5, Article 6 & Article 7 (Lawfulness of Processing & Consent)",
+    dpdp: "Section 6 (Itemized Notice & Consent) & Section 11 (Data Principal Rights)",
+    iso22301: "Clause 8.4 (Protection of Critical PII during Business Disruptions)",
+    gdpr: "Section 6 & 11 (DPDP Act 2023 / Consent & Rights)",
   },
   {
     domain: "Incident Response & Breach Notification",
     iso27001: "Control A.5.24 - A.5.28 (Security Incident Management)",
     cobit: "DSS02.05 & DSS02.06 (Incident Escalation & Tracking)",
     itAct: "Section 70B (CERT-In Mandatory Reporting) & Section 43A",
-    gdpr: "Article 33 & Article 34 (Mandatory 72-Hour Breach Notification)",
+    dpdp: "Section 8(6) (Mandatory Intimation of Breach to DPBI & Data Principals)",
+    iso22301: "Clause 8.4.2 & 8.4.3 (Incident Response Structure & Communications)",
+    gdpr: "Section 8(6) (DPDP Act 2023 / Breach Intimation)",
   },
   {
     domain: "Remote Working & Endpoint Security",
     iso27001: "Control A.6.7 (Remote Working) & A.8.1 (Endpoint Devices)",
     cobit: "DSS05.02 (Malware & Endpoint Defense)",
     itAct: "Section 43A & Rule 8 (Reasonable Security Practices on Devices)",
-    gdpr: "Article 32(1)(a) & 32(1)(d) (Endpoint Encryption & Vulnerability Testing)",
+    dpdp: "Section 8(5) (Technical Safeguards against Endpoint Data Compromise)",
+    iso22301: "Clause 8.3 (Resilient Remote Telework & Alternate Operating Workplaces)",
+    gdpr: "Section 8(5) (DPDP Act 2023 / Technical Safeguards)",
   },
   {
     domain: "Cryptography & Data Protection in Transit",
     iso27001: "Control A.8.24 (Use of Cryptography) & A.8.20 (Network Security)",
     cobit: "DSS05.03 (Network & Cryptographic Safeguards)",
     itAct: "Rule 8 (SPDI Mandated Encryption Standards)",
-    gdpr: "Article 32(1)(a) (State-of-the-art Encryption & Pseudonymization)",
+    dpdp: "Section 8(5) (Encryption & Pseudonymization Safeguards against Exfiltration)",
+    iso22301: "Clause 8.4.4 (Cryptographic Key Escrow & Secure Offline Backup Vaults)",
+    gdpr: "Section 8(5) (DPDP Act 2023 / Cryptographic Defense)",
+  },
+  {
+    domain: "Business Continuity & Disaster Resilience",
+    iso27001: "Control A.5.29 (InfoSec in Disruption) & A.8.14 (Redundancy)",
+    cobit: "DSS04.02 & DSS04.03 (Managed Continuity & DR Testing)",
+    itAct: "Section 43A / Rule 8 (Critical Data Availability & System Resilience)",
+    dpdp: "Section 8(5) (High Availability & Business Continuity for Data Fiduciary Services)",
+    iso22301: "Clause 8.2 (BIA), Clause 8.4 (BCP Runbooks), Clause 8.5 (DR Drills)",
+    gdpr: "ISO 22301 Clause 8.2 / 8.5 (Resilience & DR Drills)",
   },
 ];
 
@@ -227,21 +318,36 @@ export const MULTI_FRAMEWORK_CROSSWALK = [
 export const resolveMultiFrameworkForPolicy = (policyTitle = "") => {
   const t = (policyTitle || "").toLowerCase();
 
+  if (t.includes("continuity") || t.includes("disaster") || t.includes("bcp") || t.includes("resilience") || t.includes("recovery")) {
+    return {
+      iso27001: "ISO/IEC 27001:2022 Controls A.5.29, A.5.30, A.8.14",
+      cobit: "COBIT 2019 DSS04 (Managed Continuity)",
+      itAct: "IT Act 2000 Section 43A / Rule 8 (Resilience Standards)",
+      dpdp: "DPDP Act 2023 Section 8(5) (Safeguards against Data Loss)",
+      iso22301: "ISO 22301:2019 Clauses 8.2, 8.3, 8.4, 8.5",
+      gdpr: "DPDP Act 2023 Section 8(5) & ISO 22301 Clause 8.4",
+    };
+  }
+
   if (t.includes("access") || t.includes("password") || t.includes("authentication")) {
     return {
       iso27001: "ISO/IEC 27001:2022 Control A.5.15 & A.8.5",
       cobit: "COBIT 2019 DSS05.04 & DSS05.05",
       itAct: "IT Act 2000 Section 43A / Rule 8 (SPDI)",
-      gdpr: "EU GDPR Article 32(1)(b) & Article 25",
+      dpdp: "DPDP Act 2023 Section 8(5) (Reasonable Security Safeguards)",
+      iso22301: "ISO 22301:2019 Clause 8.4 (Access Controls during DR)",
+      gdpr: "DPDP Act 2023 Section 8(5) (Security Safeguards)",
     };
   }
 
-  if (t.includes("privacy") || t.includes("gdpr") || t.includes("pii") || t.includes("data protection")) {
+  if (t.includes("privacy") || t.includes("dpdp") || t.includes("gdpr") || t.includes("pii") || t.includes("data protection")) {
     return {
       iso27001: "ISO/IEC 27001:2022 Control A.5.34",
       cobit: "COBIT 2019 APO12.06 & MEA01",
       itAct: "IT Act 2000 Section 43A & Rules 4, 5 (SPDI)",
-      gdpr: "EU GDPR Articles 5, 25, 32",
+      dpdp: "DPDP Act 2023 Sections 4, 6, 8, 9, 11",
+      iso22301: "ISO 22301:2019 Clause 8.4 (Safeguarding Data in Disruption)",
+      gdpr: "DPDP Act 2023 Sections 4, 6, 8, 11",
     };
   }
 
@@ -250,7 +356,9 @@ export const resolveMultiFrameworkForPolicy = (policyTitle = "") => {
       iso27001: "ISO/IEC 27001:2022 Controls A.5.24 - A.5.28",
       cobit: "COBIT 2019 DSS02.05 & DSS02.06",
       itAct: "IT Act 2000 Section 43A & Section 70B (CERT-In)",
-      gdpr: "EU GDPR Articles 33 & 34 (72-hour notice)",
+      dpdp: "DPDP Act 2023 Section 8(6) (Intimation to DPBI & Principals)",
+      iso22301: "ISO 22301:2019 Clause 8.4.2 (Incident Management Structure)",
+      gdpr: "DPDP Act 2023 Section 8(6) & CERT-In Sec 70B",
     };
   }
 
@@ -259,7 +367,9 @@ export const resolveMultiFrameworkForPolicy = (policyTitle = "") => {
       iso27001: "ISO/IEC 27001:2022 Controls A.6.7 & A.8.1",
       cobit: "COBIT 2019 DSS05.02",
       itAct: "IT Act 2000 Section 43A / Rule 8 (SPDI)",
-      gdpr: "EU GDPR Article 32(1)(a) & Article 25",
+      dpdp: "DPDP Act 2023 Section 8(5) (Endpoint Data Safeguards)",
+      iso22301: "ISO 22301:2019 Clause 8.3 (Alternate Telework Resilience)",
+      gdpr: "DPDP Act 2023 Section 8(5)",
     };
   }
 
@@ -268,7 +378,9 @@ export const resolveMultiFrameworkForPolicy = (policyTitle = "") => {
     iso27001: "ISO/IEC 27001:2022 Control A.5.1",
     cobit: "COBIT 2019 APO13.01 & EDM03",
     itAct: "IT Act 2000 Section 43A / Rule 4 (SPDI)",
-    gdpr: "EU GDPR Article 24 & Article 5(2)",
+    dpdp: "DPDP Act 2023 Section 8(1) & Section 8(5)",
+    iso22301: "ISO 22301:2019 Clause 5.2 (BCMS Policy Alignment)",
+    gdpr: "DPDP Act 2023 Section 8(1) & Section 8(5)",
   };
 };
 
@@ -283,7 +395,9 @@ export const resolveMultiFrameworkForControl = (controlCode = "", title = "") =>
       iso27001: "Control A.8.5 (Secure Authentication) & A.5.15 (Access Control)",
       cobit: "DSS05.04 (User Identity and Logical Access)",
       itAct: "Section 43A / Rule 8 (Reasonable Security Practices)",
-      gdpr: "Article 32(1)(b) (Access Integrity & Confidentiality)",
+      dpdp: "DPDP Act 2023 Section 8(5) (Access Safeguards)",
+      iso22301: "ISO 22301 Clause 8.4 (DR Access Control)",
+      gdpr: "DPDP Act 2023 Section 8(5)",
     };
   }
 
@@ -292,7 +406,9 @@ export const resolveMultiFrameworkForControl = (controlCode = "", title = "") =>
       iso27001: "Control A.8.24 (Use of Cryptography) & A.8.20 (Network Security)",
       cobit: "DSS05.03 (Cryptographic Control Enforcement)",
       itAct: "Section 43A / Rule 8 (Encryption of Sensitive Personal Data)",
-      gdpr: "Article 32(1)(a) (Pseudonymization & Cryptographic Defense)",
+      dpdp: "DPDP Act 2023 Section 8(5) (Cryptographic Safeguards)",
+      iso22301: "ISO 22301 Clause 8.4.4 (Cryptographic Backup Protection)",
+      gdpr: "DPDP Act 2023 Section 8(5)",
     };
   }
 
@@ -300,17 +416,21 @@ export const resolveMultiFrameworkForControl = (controlCode = "", title = "") =>
     return {
       iso27001: "Control A.5.24 (Incident Management) & A.8.15 (Logging)",
       cobit: "DSS02.05 (Incident Tracking) & MEA01 (Monitoring)",
-      itAct: "Section 70B (CERT-In Reporting) & Section 43A",
-      gdpr: "Article 33 (72-Hour Data Breach Notification)",
+      itAct: "Section 70B (CERT-In Mandatory Reporting) & Section 43A",
+      dpdp: "DPDP Act 2023 Section 8(6) (Breach Intimation to DPBI)",
+      iso22301: "ISO 22301 Clause 8.4.2 (Incident Response Structure)",
+      gdpr: "DPDP Act 2023 Section 8(6)",
     };
   }
 
-  if (combined.includes("backup") || combined.includes("recover") || combined.includes("bcp") || combined.includes("dr")) {
+  if (combined.includes("backup") || combined.includes("recover") || combined.includes("bcp") || combined.includes("dr") || combined.includes("continuity")) {
     return {
       iso27001: "Control A.8.13 (Information Backup) & A.5.29 (ICT Readiness)",
-      cobit: "DSS04 (Managed Continuity)",
+      cobit: "DSS04 (Managed Continuity & Recovery)",
       itAct: "Section 43A / Rule 8 (Data Availability & Resilience)",
-      gdpr: "Article 32(1)(c) (Restore Availability & Timely Access)",
+      dpdp: "DPDP Act 2023 Section 8(5) (High Availability for Personal Data)",
+      iso22301: "ISO 22301:2019 Clauses 8.2, 8.4, 8.5 (BIA & DR Drills)",
+      gdpr: "ISO 22301:2019 Clause 8.4 / 8.5",
     };
   }
 
@@ -318,6 +438,8 @@ export const resolveMultiFrameworkForControl = (controlCode = "", title = "") =>
     iso27001: "Control A.5.1 (Information Security Policies)",
     cobit: "APO13 (Managed Security)",
     itAct: "Section 43A (Reasonable Security Practices)",
-    gdpr: "Article 24 (Responsibility of Controller)",
+    dpdp: "DPDP Act 2023 Section 8(1) (Data Fiduciary Duty)",
+    iso22301: "ISO 22301:2019 Clause 5.2 (BCMS Governance)",
+    gdpr: "DPDP Act 2023 Section 8(1)",
   };
 };

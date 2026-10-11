@@ -1139,7 +1139,7 @@ const Dashboard = () => {
       </div>
 
       {/* ===================================================
-          CRITICAL ACTION REQUIRED: AUTOMATED ALERTS ENGINE
+          CRITICAL ACTION REQUIRED: RULE-BASED SYSTEM ALERTS ENGINE
       ==================================================== */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -1149,7 +1149,7 @@ const Dashboard = () => {
               Critical Action Required
             </h2>
             <p className="text-xs text-slate-400">
-              Automated continuous monitoring alerts engine (Section 6, Item 11 of Synopsis)
+              Rule-based continuous monitoring alerts engine (Section 6, Item 11 of Synopsis)
             </p>
           </div>
           {(complianceGapsList.length > 0 || criticalRisksList.length > 0) && (

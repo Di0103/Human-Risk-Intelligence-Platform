@@ -329,7 +329,7 @@ const Assessment = () => {
               </span>
             </h3>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Replace static score estimation with deterministic 3-question MCQ evaluations covering <strong>ISO/IEC 27001:2022 Controls (A.5.15, A.8.5, A.5.24)</strong>, <strong>Phishing & BEC Defense</strong>, and <strong>GDPR Data Privacy</strong>. Automatically calculates percentage scores and enforces pass/fail criteria (Pass &ge; 66%).
+              Replace static score estimation with deterministic 3-question MCQ evaluations covering <strong>ISO/IEC 27001:2022 Controls (A.5.15, A.8.5, A.5.24)</strong>, <strong>Phishing & BEC Defense</strong>, <strong>DPDP Act 2023 Data Privacy</strong>, and <strong>ISO 22301 Continuity</strong>. Deterministically calculates percentage scores and enforces pass/fail criteria (Pass &ge; 66%).
             </p>
           </div>
         </div>

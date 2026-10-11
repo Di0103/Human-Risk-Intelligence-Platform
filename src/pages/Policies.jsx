@@ -63,28 +63,43 @@ export const POLICY_TEMPLATES = [
     },
   },
   {
-    id: "gdpr_privacy",
-    name: "Data Privacy & GDPR Compliance Policy",
+    id: "dpdp_privacy",
+    name: "Data Privacy & DPDP Act 2023 Compliance Policy",
     departmentName: "Legal, Risk & Governance",
-    statutoryClauses: "EU GDPR Articles 5, 25, 32; UK Data Protection Act 2018; California Consumer Privacy Act (CCPA) / CPRA",
+    statutoryClauses: "DPDP Act 2023 Sections 4, 6, 8, 11; ISO/IEC 27001:2022 Control A.5.34 (Privacy and protection of PII); IT Act 2000 Section 43A",
     version: "1.0",
     description:
-      "Defines organizational requirements for collecting, storing, processing, and transferring Personally Identifiable Information (PII). Establishes Privacy-by-Design engineering standards, records of processing activities (ROPA), mandatory Data Protection Impact Assessments (DPIA), and protocols for handling Subject Access Requests (SARs) within statutory 30-day limits.",
+      "Defines organizational requirements for collecting, storing, processing, and transferring Digital Personal Data under India's DPDP Act 2023. Establishes verifiable parental consent for minors, Purpose Limitation, Data Principal Rights fulfillment within 72 hours, Data Protection Officer (DPO) governance, and strict Data Fiduciary accountability.",
     raci: {
       responsible: "Data Protection Officer (DPO) & Privacy Team",
-      accountable: "Legal Adviser",
+      accountable: "Legal Adviser & Head of Governance",
       consulted: "Engineering & Human Resources",
       informed: "All Employees Handling Personal Data",
+    },
+  },
+  {
+    id: "business_continuity",
+    name: "Business Continuity & Disaster Resilience Policy",
+    departmentName: "IT Infrastructure & Operations",
+    statutoryClauses: "ISO 22301:2019 Clauses 8.2 (BIA), 8.4 (BCP Plans), 8.5 (DR Exercise); ISO/IEC 27001:2022 Control A.5.29 - A.5.30",
+    version: "1.0",
+    description:
+      "Defines business impact analysis (BIA), disaster recovery (DR) execution protocols, emergency operations center (EOC) failover triggers, and recovery time objective (RTO < 4 hrs) / recovery point objective (RPO < 1 hr) thresholds. Mandates bi-annual tabletop resilience exercises and air-gapped immutable backup verifications.",
+    raci: {
+      responsible: "Disaster Recovery Lead & Systems Engineering",
+      accountable: "VP of Engineering & Head of IT Infrastructure",
+      consulted: "Information Security, Compliance & Legal",
+      informed: "All Business Unit Leaders & Executive Committee",
     },
   },
   {
     id: "incident_response",
     name: "Incident Response & Breach Notification Policy",
     departmentName: "Information Security & Compliance",
-    statutoryClauses: "ISO/IEC 27001:2022 Controls A.5.24 - A.5.28; GDPR Article 33/34 (72-hour notice); SEC Cybersecurity Disclosure",
+    statutoryClauses: "ISO/IEC 27001:2022 Controls A.5.24 - A.5.28; DPDP Act 2023 Section 8(6); CERT-In Directions Section 70B (6-hour notice)",
     version: "1.0",
     description:
-      "Provides structured protocols for detecting, assessing, containing, and recovering from cybersecurity incidents and data compromises. Outlines Computer Security Incident Response Team (CSIRT) triage workflows, forensic chain-of-custody requirements, executive escalation paths, and legally mandated 72-hour regulatory breach notification procedures.",
+      "Provides structured protocols for detecting, assessing, containing, and recovering from cybersecurity incidents and data compromises. Outlines Computer Security Incident Response Team (CSIRT) triage workflows, forensic chain-of-custody requirements, executive escalation paths, and legally mandated regulatory breach notification procedures.",
     raci: {
       responsible: "SOC Lead & Incident Response Team",
       accountable: "Alex Turner / CISO",
@@ -150,13 +165,15 @@ export const extractRaciAndStatutory = (p) => {
       framework_iso27001: defaultMapping.iso27001,
       framework_cobit: defaultMapping.cobit,
       framework_it_act: defaultMapping.itAct,
-      framework_gdpr: defaultMapping.gdpr,
+      framework_dpdp: defaultMapping.dpdp || defaultMapping.gdpr,
+      framework_iso22301: defaultMapping.iso22301,
+      framework_gdpr: defaultMapping.dpdp || defaultMapping.gdpr,
     };
   }
 
   // Extract Multi-Framework from serialized description footer if present
   const rawDesc = p.description || p.summary || "";
-  const multiFwMatch = rawDesc.match(/\[MULTI_FW\s*\|\s*ISO:\s*([^|\]]+)\s*\|\s*COBIT:\s*([^|\]]+)\s*\|\s*IT_ACT:\s*([^|\]]+)\s*\|\s*GDPR:\s*([^|\]]+)\]/i);
+  const multiFwMatch = rawDesc.match(/\[MULTI_FW\s*\|\s*ISO:\s*([^|\]]+)\s*\|\s*COBIT:\s*([^|\]]+)\s*\|\s*IT_ACT:\s*([^|\]]+)\s*\|\s*(?:DPDP|GDPR):\s*([^|\]]+)(?:\s*\|\s*ISO22301:\s*([^|\]]+))?\]/i);
 
   const resolvedFw = {
     framework_iso27001:
@@ -168,9 +185,17 @@ export const extractRaciAndStatutory = (p) => {
     framework_it_act:
       p.framework_it_act ||
       (multiFwMatch ? multiFwMatch[3].trim() : defaultMapping.itAct),
-    framework_gdpr:
+    framework_dpdp:
+      p.framework_dpdp ||
       p.framework_gdpr ||
-      (multiFwMatch ? multiFwMatch[4].trim() : defaultMapping.gdpr),
+      (multiFwMatch ? multiFwMatch[4].trim() : defaultMapping.dpdp || defaultMapping.gdpr),
+    framework_iso22301:
+      p.framework_iso22301 ||
+      (multiFwMatch && multiFwMatch[5] ? multiFwMatch[5].trim() : defaultMapping.iso22301),
+    framework_gdpr:
+      p.framework_dpdp ||
+      p.framework_gdpr ||
+      (multiFwMatch ? multiFwMatch[4].trim() : defaultMapping.dpdp || defaultMapping.gdpr),
   };
 
   // Check direct DB columns
@@ -209,7 +234,8 @@ export const extractRaciAndStatutory = (p) => {
     const tplName = tpl.name.toLowerCase();
     if (titleLower.includes(tplName.slice(0, 14))) return true;
     if (tpl.id === "access_control" && (titleLower.includes("access") || titleLower.includes("password"))) return true;
-    if (tpl.id === "gdpr_privacy" && (titleLower.includes("privacy") || titleLower.includes("gdpr"))) return true;
+    if ((tpl.id === "dpdp_privacy" || tpl.id === "gdpr_privacy") && (titleLower.includes("privacy") || titleLower.includes("dpdp") || titleLower.includes("gdpr"))) return true;
+    if (tpl.id === "business_continuity" && (titleLower.includes("continuity") || titleLower.includes("disaster") || titleLower.includes("resilience"))) return true;
     if (tpl.id === "incident_response" && titleLower.includes("incident")) return true;
     if (tpl.id === "remote_work" && (titleLower.includes("remote") || titleLower.includes("byod"))) return true;
     if (tpl.id === "vendor_risk" && (titleLower.includes("vendor") || titleLower.includes("third-party"))) return true;
@@ -237,6 +263,132 @@ export const extractRaciAndStatutory = (p) => {
     statutoryClauses: "ISO/IEC 27001:2022 Control A.5.1",
     templateName: "Custom Policy",
     ...resolvedFw,
+  };
+};
+
+/**
+ * Enterprise Policy Scoring Formula (0 - 100%)
+ * Evaluates:
+ * 1. Completeness (25%): Title, Description length >= 40 chars, Version, Status
+ * 2. RACI Governance (25%): Responsible, Accountable, Consulted, Informed
+ * 3. Statutory Crosswalk (25%): ISO 27001, COBIT, IT Act 2000, DPDP Act 2023, ISO 22301
+ * 4. Technical Control Mapping & Review Cycle (25%): Valid review cycle date + mapped controls
+ */
+export const calculatePolicyScore = (policy, mappings = []) => {
+  if (!policy) {
+    return {
+      score: 0,
+      grade: "Incomplete",
+      gradeColor: "text-rose-400",
+      badgeBg: "bg-rose-500/15 border-rose-500/30",
+      breakdown: { completeness: 0, raci: 0, statutory: 0, controlsAndReview: 0 },
+    };
+  }
+
+  let score = 0;
+  const breakdown = {
+    completeness: 0,
+    raci: 0,
+    statutory: 0,
+    controlsAndReview: 0,
+  };
+
+  // 1. Completeness (up to 25 pts)
+  let compPts = 0;
+  if (policy.title && policy.title.trim().length > 3) compPts += 8;
+  const desc = cleanDescriptionText(policy.description || policy.summary || "");
+  if (desc && desc.trim().length >= 40) compPts += 10;
+  else if (desc && desc.trim().length > 0) compPts += 5;
+  if (policy.version) compPts += 4;
+  if (policy.status === "active") compPts += 3;
+  breakdown.completeness = compPts;
+  score += compPts;
+
+  // 2. RACI Assignment (up to 25 pts)
+  let raciPts = 0;
+  const raci = extractRaciAndStatutory(policy);
+  if (raci.responsible && raci.responsible.trim().length > 2) raciPts += 7;
+  if (raci.accountable && raci.accountable.trim().length > 2) raciPts += 7;
+  if (raci.consulted && raci.consulted.trim().length > 2) raciPts += 5.5;
+  if (raci.informed && raci.informed.trim().length > 2) raciPts += 5.5;
+  breakdown.raci = Math.min(25, Math.round(raciPts));
+  score += breakdown.raci;
+
+  // 3. Statutory & Multi-Framework Alignment (up to 25 pts)
+  let statPts = 0;
+  if (policy.statutory_clauses || raci.statutoryClauses) statPts += 10;
+  if (policy.framework_iso27001 || raci.framework_iso27001) statPts += 5;
+  if (policy.framework_cobit || raci.framework_cobit) statPts += 3;
+  if (policy.framework_it_act || raci.framework_it_act) statPts += 3;
+  if (
+    policy.framework_dpdp ||
+    raci.framework_dpdp ||
+    policy.framework_gdpr ||
+    raci.framework_gdpr ||
+    policy.framework_iso22301 ||
+    raci.framework_iso22301
+  ) {
+    statPts += 4;
+  }
+  breakdown.statutory = Math.min(25, statPts);
+  score += breakdown.statutory;
+
+  // 4. Control Mapping & Review Cycle (up to 25 pts)
+  let crPts = 0;
+  if (policy.review_date) {
+    const rev = new Date(policy.review_date);
+    const now = new Date();
+    if (rev > now) {
+      crPts += 10; // Active future review date
+    } else {
+      crPts += 4; // Overdue review
+    }
+  }
+  const policyIdStr = String(policy.id).trim();
+  const linkedControls = (mappings || []).filter(
+    (m) => String(m.policy_id).trim() === policyIdStr
+  );
+  if (linkedControls.length >= 2) crPts += 15;
+  else if (linkedControls.length === 1) crPts += 10;
+  else {
+    const t = (policy.title || "").toLowerCase();
+    if (
+      t.includes("access") ||
+      t.includes("privacy") ||
+      t.includes("incident") ||
+      t.includes("continuity")
+    ) {
+      crPts += 8;
+    }
+  }
+  breakdown.controlsAndReview = Math.min(25, crPts);
+  score += breakdown.controlsAndReview;
+
+  const finalScore = Math.min(100, Math.round(score));
+  let grade = "Bronze Standard";
+  let gradeColor = "text-rose-400";
+  let badgeBg = "bg-rose-500/15 border-rose-500/30";
+
+  if (finalScore >= 85) {
+    grade = "Gold Compliant";
+    gradeColor = "text-emerald-400";
+    badgeBg = "bg-emerald-500/15 border-emerald-500/30";
+  } else if (finalScore >= 70) {
+    grade = "Silver Compliant";
+    gradeColor = "text-blue-400";
+    badgeBg = "bg-blue-500/15 border-blue-500/30";
+  } else if (finalScore >= 50) {
+    grade = "Needs Alignment";
+    gradeColor = "text-amber-400";
+    badgeBg = "bg-amber-500/15 border-amber-500/30";
+  }
+
+  return {
+    score: finalScore,
+    grade,
+    gradeColor,
+    badgeBg,
+    breakdown,
   };
 };
 
@@ -268,6 +420,7 @@ export function Policies() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [controlMappings, setControlMappings] = useState([]);
 
   const initialForm = {
     template_name: "",
@@ -277,7 +430,9 @@ export function Policies() {
     framework_iso27001: "ISO/IEC 27001:2022 Control A.5.1",
     framework_cobit: "COBIT 2019 APO13.01 & EDM03",
     framework_it_act: "IT Act 2000 Section 43A / Rule 4 (SPDI)",
-    framework_gdpr: "EU GDPR Article 24 & Article 5(2)",
+    framework_dpdp: "DPDP Act 2023 Section 8(1) & Section 8(5)",
+    framework_iso22301: "ISO 22301:2019 Clause 8.2 / 8.4",
+    framework_gdpr: "DPDP Act 2023 Section 8(1) & Section 8(5)",
     department_id: "",
     department: "",
     version: "1.0",
@@ -312,6 +467,7 @@ export function Policies() {
       const rawDepts = localStorageDb.get("departments") || [];
       const rawAcks = localStorageDb.get("policy_acknowledgements") || [];
       const rawProfiles = localStorageDb.get("profiles") || [];
+      const rawMappings = localStorageDb.get("policy_control_mappings") || [];
 
       // Normalize policies to support alternative column conventions seamlessly
       const normalizedPolicies = rawPolicies.map((p) => {
@@ -334,7 +490,9 @@ export function Policies() {
           framework_iso27001: p.framework_iso27001 || raciData.framework_iso27001,
           framework_cobit: p.framework_cobit || raciData.framework_cobit,
           framework_it_act: p.framework_it_act || raciData.framework_it_act,
-          framework_gdpr: p.framework_gdpr || raciData.framework_gdpr,
+          framework_dpdp: p.framework_dpdp || p.framework_gdpr || raciData.framework_dpdp || raciData.framework_gdpr,
+          framework_iso22301: p.framework_iso22301 || raciData.framework_iso22301,
+          framework_gdpr: p.framework_dpdp || p.framework_gdpr || raciData.framework_dpdp || raciData.framework_gdpr,
           template_name: p.template_name || raciData.templateName,
         };
       });
@@ -369,6 +527,7 @@ export function Policies() {
       setDepartments(normalizedDepartments);
       setAcknowledgements(normalizedAcks);
       setProfiles(rawProfiles);
+      setControlMappings(rawMappings);
     } catch (err) {
       console.error("Error loading policies data:", err);
       showNotification("error", "Failed to load policy data: " + err.message);
@@ -386,6 +545,7 @@ export function Policies() {
         e.detail.collection === "policies" ||
         e.detail.collection === "departments" ||
         e.detail.collection === "policy_acknowledgements" ||
+        e.detail.collection === "policy_control_mappings" ||
         e.detail.collection === "all"
       ) {
         fetchData();
@@ -494,6 +654,16 @@ export function Policies() {
         });
       }).length;
 
+    // Live Average Policy Score
+    let avgScore = 0;
+    if (policies.length > 0) {
+      const sumScores = policies.reduce((acc, p) => {
+        const sc = calculatePolicyScore(p, controlMappings);
+        return acc + sc.score;
+      }, 0);
+      avgScore = Math.round(sumScores / policies.length);
+    }
+
     return {
       totalPolicies,
       published,
@@ -502,8 +672,9 @@ export function Policies() {
       complianceRate,
       myAcksCount,
       totalEmployees,
+      avgScore,
     };
-  }, [policies, acknowledgements, profiles, user]);
+  }, [policies, acknowledgements, profiles, user, controlMappings]);
 
   // Handle Template Selection
   const handleSelectTemplate = (templateId) => {
@@ -535,7 +706,9 @@ export function Policies() {
       framework_iso27001: multiFw.iso27001,
       framework_cobit: multiFw.cobit,
       framework_it_act: multiFw.itAct,
-      framework_gdpr: multiFw.gdpr,
+      framework_dpdp: multiFw.dpdp || multiFw.gdpr,
+      framework_iso22301: multiFw.iso22301,
+      framework_gdpr: multiFw.dpdp || multiFw.gdpr,
       version: tpl.version || "1.0",
       department_id: matchedDept ? matchedDept.id : prev.department_id || departments[0]?.id || "",
       department: matchedDept ? matchedDept.name : tpl.departmentName,
@@ -569,7 +742,9 @@ export function Policies() {
       framework_iso27001: policy.framework_iso27001 || raci.framework_iso27001 || "ISO/IEC 27001:2022 Control A.5.1",
       framework_cobit: policy.framework_cobit || raci.framework_cobit || "COBIT 2019 APO13",
       framework_it_act: policy.framework_it_act || raci.framework_it_act || "IT Act 2000 Section 43A / Rule 4",
-      framework_gdpr: policy.framework_gdpr || raci.framework_gdpr || "EU GDPR Article 24",
+      framework_dpdp: policy.framework_dpdp || policy.framework_gdpr || raci.framework_dpdp || raci.framework_gdpr || "DPDP Act 2023 Section 8(1)",
+      framework_iso22301: policy.framework_iso22301 || raci.framework_iso22301 || "ISO 22301:2019 Clause 8.2 / 8.4",
+      framework_gdpr: policy.framework_dpdp || policy.framework_gdpr || raci.framework_dpdp || raci.framework_gdpr || "DPDP Act 2023 Section 8(1)",
       department_id: policy.department_id || "",
       department: policy.department || policy.department_name || "",
       version: policy.version || "1.0",
@@ -637,10 +812,17 @@ export function Policies() {
     const fwIso = form.framework_iso27001 ? form.framework_iso27001.trim() : "ISO/IEC 27001:2022 Control A.5.1";
     const fwCobit = form.framework_cobit ? form.framework_cobit.trim() : "COBIT 2019 APO13";
     const fwItAct = form.framework_it_act ? form.framework_it_act.trim() : "IT Act 2000 Section 43A / Rule 4";
-    const fwGdpr = form.framework_gdpr ? form.framework_gdpr.trim() : "EU GDPR Article 24";
+    const fwDpdp = form.framework_dpdp
+      ? form.framework_dpdp.trim()
+      : form.framework_gdpr
+      ? form.framework_gdpr.trim()
+      : "DPDP Act 2023 Section 8(1) & Section 8(5)";
+    const fwIso22301 = form.framework_iso22301
+      ? form.framework_iso22301.trim()
+      : "ISO 22301:2019 Clause 8.2 / 8.4";
 
     // Structured metadata serialized footer to guarantee persistence even if DB columns aren't migrated
-    const serializedFooter = `\n\n[TEMPLATE: ${templateName || "Enterprise Policy"}] [RACI | R: ${raciResponsible} | A: ${raciAccountable} | C: ${raciConsulted} | I: ${raciInformed}] [STATUTORY: ${statutoryClauses}] [MULTI_FW | ISO: ${fwIso} | COBIT: ${fwCobit} | IT_ACT: ${fwItAct} | GDPR: ${fwGdpr}]`;
+    const serializedFooter = `\n\n[TEMPLATE: ${templateName || "Enterprise Policy"}] [RACI | R: ${raciResponsible} | A: ${raciAccountable} | C: ${raciConsulted} | I: ${raciInformed}] [STATUTORY: ${statutoryClauses}] [MULTI_FW | ISO: ${fwIso} | COBIT: ${fwCobit} | IT_ACT: ${fwItAct} | DPDP: ${fwDpdp} | ISO22301: ${fwIso22301}]`;
     const cleanDesc = cleanDescriptionText(description);
     const enrichedDescription = `${cleanDesc}${serializedFooter}`;
 
@@ -667,7 +849,9 @@ export function Policies() {
         framework_iso27001: fwIso,
         framework_cobit: fwCobit,
         framework_it_act: fwItAct,
-        framework_gdpr: fwGdpr,
+        framework_dpdp: fwDpdp,
+        framework_iso22301: fwIso22301,
+        framework_gdpr: fwDpdp,
         template_name: templateName,
         user_id: user?.id,
         organization_id: user?.id,
@@ -979,7 +1163,7 @@ export function Policies() {
       )}
 
       {/* 2. Top Summary KPI Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Total Published Policies */}
         <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -990,7 +1174,43 @@ export function Policies() {
           </div>
           <div className="text-2xl font-bold text-white mt-1.5">{metrics.published}</div>
           <div className="text-[11px] text-blue-400 mt-1 font-medium">
-            Active Organizational Governance
+            Active Governance
+          </div>
+        </div>
+
+        {/* Policy Scoring Average */}
+        <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Policy Score Avg
+            </span>
+            <FiAward className="text-emerald-400 text-lg" />
+          </div>
+          <div className="text-2xl font-bold text-white mt-1.5 flex items-baseline gap-1">
+            <span
+              className={
+                metrics.avgScore >= 80
+                  ? "text-emerald-400"
+                  : metrics.avgScore >= 60
+                  ? "text-blue-400"
+                  : "text-amber-400"
+              }
+            >
+              {metrics.avgScore}%
+            </span>
+            <span className="text-xs text-slate-500 font-normal">/ 100</span>
+          </div>
+          <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ${
+                metrics.avgScore >= 80
+                  ? "bg-emerald-500"
+                  : metrics.avgScore >= 60
+                  ? "bg-blue-500"
+                  : "bg-amber-500"
+              }`}
+              style={{ width: `${metrics.avgScore}%` }}
+            />
           </div>
         </div>
 
@@ -1171,6 +1391,7 @@ export function Policies() {
                   <th className="py-3.5 px-4">Version</th>
                   <th className="py-3.5 px-4">Next Review</th>
                   <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Policy Score</th>
                   {activeTab === "all_policies" ? (
                     <th className="py-3.5 px-4 text-center">Staff Sign-off</th>
                   ) : (
@@ -1262,16 +1483,25 @@ export function Policies() {
                               <span className="truncate max-w-[100px]">{p.framework_it_act}</span>
                             </span>
                           )}
-                          {p.framework_gdpr && (
+                          {(p.framework_dpdp || p.framework_gdpr) && (
                             <span
                               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-mono"
-                              title={`EU GDPR: ${p.framework_gdpr}`}
+                              title={`DPDP Act 2023: ${p.framework_dpdp || p.framework_gdpr}`}
                             >
-                              <span className="font-bold text-[9px] text-emerald-400">GDPR</span>
-                              <span className="truncate max-w-[100px]">{p.framework_gdpr}</span>
+                              <span className="font-bold text-[9px] text-emerald-400">DPDP</span>
+                              <span className="truncate max-w-[100px]">{p.framework_dpdp || p.framework_gdpr}</span>
                             </span>
                           )}
-                          {!p.framework_iso27001 && !p.framework_cobit && !p.framework_it_act && !p.framework_gdpr && p.statutory_clauses && (
+                          {p.framework_iso22301 && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-rose-500/10 text-rose-300 border border-rose-500/30 font-mono"
+                              title={`ISO 22301:2019: ${p.framework_iso22301}`}
+                            >
+                              <span className="font-bold text-[9px] text-rose-400">ISO 22301</span>
+                              <span className="truncate max-w-[100px]">{p.framework_iso22301}</span>
+                            </span>
+                          )}
+                          {!p.framework_iso27001 && !p.framework_cobit && !p.framework_it_act && !p.framework_dpdp && !p.framework_gdpr && !p.framework_iso22301 && p.statutory_clauses && (
                             <span
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700/60 font-mono truncate max-w-xs"
                               title={`Statutory & Regulatory Alignment: ${p.statutory_clauses}`}
@@ -1352,6 +1582,27 @@ export function Policies() {
                       {/* Status */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {renderStatusBadge(p.status)}
+                      </td>
+
+                      {/* Policy Score & Grade */}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        {(() => {
+                          const scoreData = calculatePolicyScore(p, controlMappings);
+                          return (
+                            <div className="inline-flex flex-col items-center">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center gap-1 ${scoreData.badgeBg} ${scoreData.gradeColor}`}
+                                title={`Completeness: ${scoreData.breakdown.completeness}/25 | RACI: ${scoreData.breakdown.raci}/25 | Statutory: ${scoreData.breakdown.statutory}/25 | Controls & Review: ${scoreData.breakdown.controlsAndReview}/25`}
+                              >
+                                <FiAward className="text-xs" />
+                                {scoreData.score}%
+                              </span>
+                              <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                                {scoreData.grade}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Column depends on Active Tab */}
@@ -1602,7 +1853,7 @@ export function Policies() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. ISO/IEC 27001:2022 Control A.5.1, GDPR Art 32, SOC 2 CC5.1"
+                  placeholder="e.g. ISO/IEC 27001:2022 Control A.5.1, DPDP Act 2023 Sec 8(5), ISO 22301 Clause 8.4"
                   value={form.statutory_clauses}
                   onChange={(e) => setForm({ ...form, statutory_clauses: e.target.value })}
                   className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1615,7 +1866,7 @@ export function Policies() {
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                     <FiLayers className="text-blue-400" /> Multi-Framework Statutory Clause Mapping
                   </h4>
-                  <span className="text-[10px] text-slate-400">ISO 27001, COBIT, IT Act 2000 & GDPR Crosswalk</span>
+                  <span className="text-[10px] text-slate-400">ISO 27001, COBIT, IT Act 2000, DPDP Act 2023 & ISO 22301 Crosswalk</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1670,20 +1921,43 @@ export function Policies() {
                     />
                   </div>
 
-                  {/* EU GDPR */}
+                  {/* DPDP Act 2023 */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
                       <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[10px]">
-                        EU GDPR
+                        DPDP Act 2023
                       </span>
-                      <span className="text-[11px]">Statutory Article</span>
+                      <span className="text-[11px]">Section / Safeguards</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g., Article 24 & Article 32 (Security of processing)"
-                      value={form.framework_gdpr}
-                      onChange={(e) => setForm({ ...form, framework_gdpr: e.target.value })}
+                      placeholder="e.g., Section 8(1) & Section 8(5) (Security Safeguards)"
+                      value={form.framework_dpdp || form.framework_gdpr || ""}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          framework_dpdp: e.target.value,
+                          framework_gdpr: e.target.value,
+                        })
+                      }
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  {/* ISO 22301:2019 */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-[10px]">
+                        ISO 22301
+                      </span>
+                      <span className="text-[11px]">Business Continuity Clause</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Clause 8.2 (BIA) & Clause 8.4 (BCP Plans)"
+                      value={form.framework_iso22301 || ""}
+                      onChange={(e) => setForm({ ...form, framework_iso22301: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
                   </div>
                 </div>
@@ -1877,13 +2151,73 @@ export function Policies() {
                 </div>
               )}
 
+              {/* Policy Compliance Score Breakdown Card */}
+              {(() => {
+                const scoreData = calculatePolicyScore(readerPolicy, controlMappings);
+                return (
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          <FiAward className="text-base" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white uppercase tracking-wider">
+                            Policy Compliance Score Engine
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            Evaluated across completeness, review lifecycle, RACI ownership & control mapping
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${scoreData.badgeBg} ${scoreData.gradeColor}`}>
+                          {scoreData.score}% · {scoreData.grade}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                      <div className="bg-slate-900 border border-slate-800/80 rounded-lg p-2">
+                        <div className="text-slate-400">Completeness</div>
+                        <div className="font-bold text-white mt-0.5">{scoreData.breakdown.completeness} / 25 pts</div>
+                        <div className="w-full bg-slate-800 h-1 rounded-full mt-1.5 overflow-hidden">
+                          <div className="h-full bg-blue-500" style={{ width: `${(scoreData.breakdown.completeness / 25) * 100}%` }} />
+                        </div>
+                      </div>
+                      <div className="bg-slate-900 border border-slate-800/80 rounded-lg p-2">
+                        <div className="text-slate-400">RACI Assignment</div>
+                        <div className="font-bold text-white mt-0.5">{scoreData.breakdown.raci} / 25 pts</div>
+                        <div className="w-full bg-slate-800 h-1 rounded-full mt-1.5 overflow-hidden">
+                          <div className="h-full bg-purple-500" style={{ width: `${(scoreData.breakdown.raci / 25) * 100}%` }} />
+                        </div>
+                      </div>
+                      <div className="bg-slate-900 border border-slate-800/80 rounded-lg p-2">
+                        <div className="text-slate-400">Statutory Alignment</div>
+                        <div className="font-bold text-white mt-0.5">{scoreData.breakdown.statutory} / 25 pts</div>
+                        <div className="w-full bg-slate-800 h-1 rounded-full mt-1.5 overflow-hidden">
+                          <div className="h-full bg-emerald-500" style={{ width: `${(scoreData.breakdown.statutory / 25) * 100}%` }} />
+                        </div>
+                      </div>
+                      <div className="bg-slate-900 border border-slate-800/80 rounded-lg p-2">
+                        <div className="text-slate-400">Controls & Review</div>
+                        <div className="font-bold text-white mt-0.5">{scoreData.breakdown.controlsAndReview} / 25 pts</div>
+                        <div className="w-full bg-slate-800 h-1 rounded-full mt-1.5 overflow-hidden">
+                          <div className="h-full bg-amber-500" style={{ width: `${(scoreData.breakdown.controlsAndReview / 25) * 100}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Multi-Framework Statutory Crosswalk in Reader Modal */}
-              {(readerPolicy.framework_iso27001 || readerPolicy.framework_cobit || readerPolicy.framework_it_act || readerPolicy.framework_gdpr) && (
+              {(readerPolicy.framework_iso27001 || readerPolicy.framework_cobit || readerPolicy.framework_it_act || readerPolicy.framework_dpdp || readerPolicy.framework_gdpr || readerPolicy.framework_iso22301) && (
                 <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-2">
                   <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                     <FiLayers className="text-blue-400" /> Multi-Framework Statutory Crosswalk
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {readerPolicy.framework_iso27001 && (
                       <div className="bg-slate-900/90 border border-blue-500/20 p-2.5 rounded-lg">
                         <div className="text-[10px] font-bold text-blue-400 uppercase">ISO/IEC 27001</div>
@@ -1911,13 +2245,22 @@ export function Policies() {
                         <div className="text-[10px] text-slate-500">Sec 43A / SPDI</div>
                       </div>
                     )}
-                    {readerPolicy.framework_gdpr && (
+                    {(readerPolicy.framework_dpdp || readerPolicy.framework_gdpr) && (
                       <div className="bg-slate-900/90 border border-emerald-500/20 p-2.5 rounded-lg">
-                        <div className="text-[10px] font-bold text-emerald-400 uppercase">EU GDPR</div>
-                        <div className="text-xs font-semibold text-slate-200 mt-1 truncate" title={readerPolicy.framework_gdpr}>
-                          {readerPolicy.framework_gdpr}
+                        <div className="text-[10px] font-bold text-emerald-400 uppercase">DPDP Act 2023</div>
+                        <div className="text-xs font-semibold text-slate-200 mt-1 truncate" title={readerPolicy.framework_dpdp || readerPolicy.framework_gdpr}>
+                          {readerPolicy.framework_dpdp || readerPolicy.framework_gdpr}
                         </div>
-                        <div className="text-[10px] text-slate-500">Statutory Article</div>
+                        <div className="text-[10px] text-slate-500">Section Mandate</div>
+                      </div>
+                    )}
+                    {readerPolicy.framework_iso22301 && (
+                      <div className="bg-slate-900/90 border border-rose-500/20 p-2.5 rounded-lg">
+                        <div className="text-[10px] font-bold text-rose-400 uppercase">ISO 22301</div>
+                        <div className="text-xs font-semibold text-slate-200 mt-1 truncate" title={readerPolicy.framework_iso22301}>
+                          {readerPolicy.framework_iso22301}
+                        </div>
+                        <div className="text-[10px] text-slate-500">BCP / Resilience</div>
                       </div>
                     )}
                   </div>

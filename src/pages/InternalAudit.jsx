@@ -165,15 +165,15 @@ export function InternalAudit() {
     });
   }, [findings, searchTerm, selectedSeverity, selectedStatus, selectedFramework]);
 
-  // Execute Automated Compliance Self-Audit Engine
+  // Execute Rule-Based Enterprise Audit Engine
   const handleRunSelfAudit = async () => {
     setIsRunningSelfAudit(true);
     setSelfAuditProgress(10);
 
     const steps = [
       "Auditing Identity & Access Control against ISO 27001 Control A.5.15 & COBIT DSS05...",
-      "Evaluating Data Protection & PII Processing against GDPR Art. 32 & IT Act Sec 43A...",
-      "Checking Incident Response Escalation & 72-Hour Notification Drills...",
+      "Evaluating Data Protection & Digital Personal Data Safeguards against DPDP Act 2023 & IT Act...",
+      "Verifying Business Continuity Plans, Disaster Recovery RTO/RPO Metrics & Drills (ISO 22301)...",
       "Synthesizing Non-Conformities & Sequenced Finding Registry...",
     ];
 
@@ -182,20 +182,20 @@ export function InternalAudit() {
       setSelfAuditProgress((i + 1) * 25);
     }
 
-    // Auto-generate fresh simulated finding based on audit
+    // System-generated fresh finding based on rule-based audit
     const nextSeq = findings.length + 1;
     const newFindingCode = formatId(nextSeq, nextSeq - 1, "FINDING");
     const freshFinding = {
       id: Date.now(),
       finding_code: newFindingCode,
       audit_code: audits[0]?.audit_code || "AUDIT-001",
-      title: "Automated Self-Audit: Periodic Cryptographic Key Rotation Gap Detected",
+      title: "System-Driven Audit: Periodic Cryptographic Key Rotation Gap Detected",
       severity: "Minor Non-Conformity",
       framework_clause: "Control A.8.24 (Cryptography) & IT Act Rule 8",
       framework_name: "ISO/IEC 27001:2022 & IT Act 2000",
-      description: "Automated scan discovered production database encryption keys exceeding recommended 365-day rotation policy interval.",
+      description: "Rule-based audit discovered production database encryption keys exceeding recommended 365-day rotation policy interval.",
       evidence: "KMS log metadata shows key `prod-db-kms-01` created 380 days ago without automatic yearly rotation enabled.",
-      remediation_plan: "Enable automated 365-day rotation on AWS KMS / GCP KMS keyring; verify ciphertext transparent re-wrap.",
+      remediation_plan: "Enable system-enforced 365-day rotation on AWS KMS / GCP KMS keyring; verify ciphertext transparent re-wrap.",
       owner: "DevOps & Cloud Security Team",
       status: "In Remediation",
       due_date: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0],
@@ -217,7 +217,7 @@ export function InternalAudit() {
     setSelfAuditProgress(0);
     showNotification(
       "success",
-      `Compliance Self-Audit Completed! Generated sequenced finding ${newFindingCode} with remediation tasks.`
+      `Enterprise Self-Audit Completed! Generated sequenced finding ${newFindingCode} with remediation tasks.`
     );
   };
 
@@ -416,7 +416,7 @@ export function InternalAudit() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Internal Audit & Self-Assessment Engine
+              Rule-Based Enterprise Audit & Self-Assessment Engine
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               Execute structured compliance self-audits, track sequenced findings (AUDIT-001, FINDING-001), and map multi-framework statutory clauses.
@@ -432,7 +432,7 @@ export function InternalAudit() {
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/20 border border-emerald-400/30 transition transform active:scale-95 disabled:opacity-50"
           >
             <FiActivity className={isRunningSelfAudit ? "animate-spin" : ""} />
-            <span>{isRunningSelfAudit ? "Running Self-Audit..." : "Run Compliance Self-Audit"}</span>
+            <span>{isRunningSelfAudit ? "Running Rule-Based Audit..." : "Run Rule-Based Enterprise Audit"}</span>
           </button>
 
           <button
@@ -468,7 +468,7 @@ export function InternalAudit() {
       {isRunningSelfAudit && (
         <div className="bg-slate-900 border border-emerald-500/40 rounded-xl p-4 shadow-xl space-y-2 animate-pulse">
           <div className="flex items-center justify-between text-xs font-semibold text-emerald-400">
-            <span>Executing ISO 27001, COBIT, IT Act & GDPR Self-Audit Scan...</span>
+            <span>Executing ISO 27001, COBIT, IT Act, DPDP & ISO 22301 Rule-Based Audit Scan...</span>
             <span>{selfAuditProgress}%</span>
           </div>
           <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
@@ -563,7 +563,7 @@ export function InternalAudit() {
             </h3>
             <p className="text-xs text-slate-300 mt-0.5 max-w-3xl leading-relaxed">
               Every audit finding and security policy cross-references international standards and statutory mandates:
-              <strong> ISO/IEC 27001:2022</strong> (Annex A controls), <strong>COBIT 2019</strong> (EDM/DSS/APO objectives), <strong>IT Act 2000</strong> (Section 43A / SPDI Rules), and <strong>EU GDPR</strong> (Articles 5, 25, 32, 33).
+              <strong> ISO/IEC 27001:2022</strong> (Annex A controls), <strong>COBIT 2019</strong> (EDM/DSS/APO objectives), <strong>IT Act 2000</strong> (Section 43A / SPDI Rules), <strong>DPDP Act 2023</strong> (Sections 4, 6, 8, 11), and <strong>ISO 22301:2019</strong> (Business Continuity & Resilience).
             </p>
           </div>
 
@@ -870,7 +870,7 @@ export function InternalAudit() {
               <span>Multi-Framework Statutory Crosswalk Matrix</span>
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Comprehensive correlation matrix mapping ISO/IEC 27001, COBIT 2019, IT Act 2000 (Section 43A/SPDI), and EU GDPR across core operational domains.
+              Comprehensive correlation matrix mapping ISO/IEC 27001, COBIT 2019, IT Act 2000 (Section 43A/SPDI), DPDP Act 2023, and ISO 22301 across core operational domains.
             </p>
           </div>
 
@@ -882,7 +882,8 @@ export function InternalAudit() {
                   <th className="py-3 px-4 text-blue-300">ISO/IEC 27001:2022</th>
                   <th className="py-3 px-4 text-purple-300">COBIT 2019</th>
                   <th className="py-3 px-4 text-amber-300">IT Act 2000 (Sec 43A/SPDI)</th>
-                  <th className="py-3 px-4 text-emerald-300">EU GDPR Articles</th>
+                  <th className="py-3 px-4 text-emerald-300">DPDP Act 2023</th>
+                  <th className="py-3 px-4 text-teal-300">ISO 22301:2019</th>
                 </tr>
               </thead>
 
@@ -901,8 +902,11 @@ export function InternalAudit() {
                     <td className="py-3.5 px-4 font-mono text-amber-200 bg-amber-950/10 border-r border-slate-800/80">
                       {row.itAct}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-emerald-200 bg-emerald-950/10">
-                      {row.gdpr}
+                    <td className="py-3.5 px-4 font-mono text-emerald-200 bg-emerald-950/10 border-r border-slate-800/80">
+                      {row.dpdp || row.gdpr}
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-teal-200 bg-teal-950/10">
+                      {row.iso22301 || "Clause 8.4 (Continuity Procedures)"}
                     </td>
                   </tr>
                 ))}
@@ -994,7 +998,8 @@ export function InternalAudit() {
                     <option value="ISO/IEC 27001:2022">ISO/IEC 27001:2022</option>
                     <option value="COBIT 2019">COBIT 2019</option>
                     <option value="IT Act 2000 (Section 43A/SPDI)">IT Act 2000 (Section 43A/SPDI)</option>
-                    <option value="EU GDPR">EU GDPR</option>
+                    <option value="DPDP Act 2023">DPDP Act 2023 (Digital Personal Data Protection)</option>
+                    <option value="ISO 22301:2019">ISO 22301:2019 (Business Continuity)</option>
                   </select>
                 </div>
 
@@ -1132,8 +1137,9 @@ export function InternalAudit() {
                   <option value="ISO/IEC 27001:2022">ISO/IEC 27001:2022 ISMS</option>
                   <option value="COBIT 2019">COBIT 2019 IT Governance</option>
                   <option value="IT Act 2000 (Section 43A/SPDI)">IT Act 2000 (Section 43A & SPDI)</option>
-                  <option value="EU GDPR">EU GDPR Articles 5, 25, 32</option>
-                  <option value="Multi-Framework (ISO, COBIT, IT Act, GDPR)">Multi-Framework Integrated Audit</option>
+                  <option value="DPDP Act 2023">DPDP Act 2023 (Digital Personal Data Protection Act)</option>
+                  <option value="ISO 22301:2019">ISO 22301:2019 (Business Continuity Management)</option>
+                  <option value="Multi-Framework (ISO, COBIT, IT Act, DPDP, ISO 22301)">Multi-Framework Integrated Audit</option>
                 </select>
               </div>
 

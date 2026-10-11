@@ -216,7 +216,9 @@ export function RiskRegister() {
       case "Technical / Infrastructure":
         return "ISO/IEC 27001:2022 Control A.8.1 (Endpoint) & A.8.20 (Network Security)";
       case "Data Privacy & Governance":
-        return "EU GDPR Article 32 (Security of processing) & IT Act 2000 Section 43A";
+        return "DPDP Act 2023 Section 8(5) (Security Safeguards) & IT Act 2000 Section 43A";
+      case "Business Continuity & DR":
+        return "ISO 22301:2019 Clause 8.4 (Continuity Procedures) & ISO 27001 Control A.8.14";
       case "Compliance & Legal":
         return "ISO/IEC 27001:2022 Control A.5.31 (Legal compliance) & COBIT MEA03";
       case "Third-Party Vendor":
@@ -618,7 +620,7 @@ export function RiskRegister() {
             </div>
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                Automated Risk Scoring & Vulnerability Matrix Calculator
+                Rule-Based Risk Scoring & Vulnerability Matrix Calculator
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
                   L × I Scoring Engine
                 </span>
@@ -803,7 +805,7 @@ export function RiskRegister() {
             <div className="lg:col-span-5 bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-4">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block mb-1">
-                  Automated Calculation Results
+                  Rule-Based Calculation Results
                 </span>
 
                 <div className="grid grid-cols-2 gap-3 mt-2">

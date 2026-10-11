@@ -66,7 +66,7 @@ export function Compliance() {
   const [activeTab, setActiveTab] = useState("gaps"); // "gaps" | "controls" | "matrix" | "policy_mapping" | "audit_trail"
   const [searchTerm, setSearchTerm] = useState("");
   const [gapFilter, setGapFilter] = useState("all"); // "all" | "gaps_only" | "covered_only"
-  const [frameworkFilter, setFrameworkFilter] = useState("all"); // "all" | "iso27001" | "cobit" | "it_act" | "gdpr"
+  const [frameworkFilter, setFrameworkFilter] = useState("all"); // "all" | "iso27001" | "cobit" | "it_act" | "dpdp" | "iso22301"
 
   // Notification Banner
   const [notification, setNotification] = useState(null);
@@ -475,8 +475,10 @@ export function Compliance() {
 
         if (title.includes("access") || title.includes("password")) {
           targetCodes = ["CTRL-002", "CTRL-007"];
-        } else if (title.includes("privacy") || title.includes("gdpr") || title.includes("data")) {
+        } else if (title.includes("privacy") || title.includes("dpdp") || title.includes("gdpr") || title.includes("data")) {
           targetCodes = ["CTRL-001", "CTRL-010"];
+        } else if (title.includes("continuity") || title.includes("disaster") || title.includes("resilience")) {
+          targetCodes = ["CTRL-003", "CTRL-005"];
         } else if (title.includes("incident") || title.includes("response")) {
           targetCodes = ["CTRL-002", "CTRL-008"];
         } else if (title.includes("remote") || title.includes("byod")) {
@@ -956,7 +958,9 @@ export function Compliance() {
         if (frameworkFilter === "iso27001" && !fw.iso27001) return false;
         if (frameworkFilter === "cobit" && !fw.cobit) return false;
         if (frameworkFilter === "it_act" && !fw.itAct) return false;
-        if (frameworkFilter === "gdpr" && !fw.gdpr) return false;
+        if (frameworkFilter === "dpdp" && !(fw.dpdp || fw.gdpr)) return false;
+        if (frameworkFilter === "iso22301" && !fw.iso22301) return false;
+        if (frameworkFilter === "gdpr" && !(fw.dpdp || fw.gdpr)) return false;
       }
 
       return true;
@@ -974,7 +978,7 @@ export function Compliance() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">
-                Compliance & Automated Gap Identification
+                Compliance & Structured Gap Identification
               </h1>
               <p className="text-xs text-slate-400">
                 Continuous ISO/IEC 27001:2022 clause-to-control audit readiness and gap mitigation.
@@ -1277,7 +1281,7 @@ export function Compliance() {
         )}
       </div>
 
-      {/* 4. Tab 1: Compliance Requirements & Automated Gap Analysis */}
+      {/* 4. Tab 1: Compliance Requirements & Structured Gap Analysis */}
       {loading ? (
         <div className="py-20 text-center">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -1328,7 +1332,7 @@ export function Compliance() {
                           {fw.name}
                         </span>
 
-                        {/* Automated Gap Status Badge */}
+                        {/* Structured Gap Status Badge */}
                         {isGap ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/40">
                             <FiAlertTriangle className="animate-pulse" />
@@ -1474,15 +1478,26 @@ export function Compliance() {
                 IT Act 2000
               </button>
               <button
-                onClick={() => setFrameworkFilter("gdpr")}
+                onClick={() => setFrameworkFilter("dpdp")}
                 className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
-                  frameworkFilter === "gdpr"
+                  frameworkFilter === "dpdp"
                     ? "bg-emerald-950/80 text-emerald-300 font-semibold border border-emerald-500/30"
                     : "text-slate-400 hover:text-emerald-300"
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                EU GDPR
+                DPDP Act 2023
+              </button>
+              <button
+                onClick={() => setFrameworkFilter("iso22301")}
+                className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                  frameworkFilter === "iso22301"
+                    ? "bg-rose-950/80 text-rose-300 font-semibold border border-rose-500/30"
+                    : "text-slate-400 hover:text-rose-300"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                ISO 22301
               </button>
             </div>
 
@@ -1589,18 +1604,35 @@ export function Compliance() {
                                 </span>
                               </div>
 
-                              {/* EU GDPR */}
-                              <div
-                                className="flex items-center gap-1.5 text-[11px]"
-                                title={`EU GDPR: ${multiFw.gdpr}`}
-                              >
-                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px] shrink-0">
-                                  GDPR
-                                </span>
-                                <span className="text-emerald-300 font-mono text-[10px] truncate max-w-[180px]">
-                                  {multiFw.gdpr}
-                                </span>
-                              </div>
+                              {/* DPDP Act 2023 */}
+                              {(multiFw.dpdp || multiFw.gdpr) && (
+                                <div
+                                  className="flex items-center gap-1.5 text-[11px]"
+                                  title={`DPDP Act 2023: ${multiFw.dpdp || multiFw.gdpr}`}
+                                >
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px] shrink-0">
+                                    DPDP
+                                  </span>
+                                  <span className="text-emerald-300 font-mono text-[10px] truncate max-w-[180px]">
+                                    {multiFw.dpdp || multiFw.gdpr}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* ISO 22301:2019 */}
+                              {multiFw.iso22301 && (
+                                <div
+                                  className="flex items-center gap-1.5 text-[11px]"
+                                  title={`ISO 22301:2019: ${multiFw.iso22301}`}
+                                >
+                                  <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-[9px] shrink-0">
+                                    ISO 22301
+                                  </span>
+                                  <span className="text-rose-300 font-mono text-[10px] truncate max-w-[180px]">
+                                    {multiFw.iso22301}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </td>
 
@@ -1752,9 +1784,14 @@ export function Compliance() {
                                 <span className="text-amber-300 font-mono truncate" title={`IT Act 2000: ${ctrlFw.itAct}`}>
                                   <strong className="text-amber-400">IT Act:</strong> {ctrlFw.itAct}
                                 </span>
-                                <span className="text-emerald-300 font-mono truncate" title={`EU GDPR: ${ctrlFw.gdpr}`}>
-                                  <strong className="text-emerald-400">GDPR:</strong> {ctrlFw.gdpr}
+                                <span className="text-emerald-300 font-mono truncate" title={`DPDP Act 2023: ${ctrlFw.dpdp || ctrlFw.gdpr}`}>
+                                  <strong className="text-emerald-400">DPDP:</strong> {ctrlFw.dpdp || ctrlFw.gdpr}
                                 </span>
+                                {ctrlFw.iso22301 && (
+                                  <span className="text-rose-300 font-mono truncate" title={`ISO 22301:2019: ${ctrlFw.iso22301}`}>
+                                    <strong className="text-rose-400">ISO 22301:</strong> {ctrlFw.iso22301}
+                                  </span>
+                                )}
                               </div>
                             </td>
 
@@ -1881,7 +1918,7 @@ export function Compliance() {
                 <FiLink className="text-indigo-400" /> Internal Policy & Security Control Alignment
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Directly map corporate governance policies to technical safeguards with automated compliance tracking.
+                Directly map corporate governance policies to technical safeguards with system-driven compliance tracking.
               </p>
             </div>
 
@@ -2920,9 +2957,15 @@ export function Compliance() {
                         </span>
                       </div>
                       <div className="bg-slate-900/90 border border-emerald-500/20 p-2 rounded-lg">
-                        <span className="font-bold text-emerald-400 block">EU GDPR:</span>
-                        <span className="text-emerald-300 font-mono truncate block" title={previewFw.gdpr}>
-                          {previewFw.gdpr}
+                        <span className="font-bold text-emerald-400 block">DPDP Act 2023:</span>
+                        <span className="text-emerald-300 font-mono truncate block" title={previewFw.dpdp || previewFw.gdpr}>
+                          {previewFw.dpdp || previewFw.gdpr}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900/90 border border-rose-500/20 p-2 rounded-lg">
+                        <span className="font-bold text-rose-400 block">ISO 22301:</span>
+                        <span className="text-rose-300 font-mono truncate block" title={previewFw.iso22301}>
+                          {previewFw.iso22301 || "N/A"}
                         </span>
                       </div>
                     </div>

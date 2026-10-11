@@ -136,7 +136,7 @@ const Home = () => {
 
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-bold text-white mb-2">
-                Automated Gap Identification
+                Structured Gap Identification
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Dynamically verify ISO 27001 requirements against implemented safeguards to pinpoint compliance deficiencies.

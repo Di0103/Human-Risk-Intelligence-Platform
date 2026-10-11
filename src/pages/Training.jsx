@@ -295,7 +295,7 @@ const Training = () => {
               </span>
             </h3>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Verify workforce training comprehension with interactive 3-question MCQ quizzes covering ISO 27001 Access Control, NIST Phishing & Social Engineering Defense, or GDPR. Passing an assessment automatically marks the training session as <strong>Completed (100%)</strong>.
+              Verify workforce training comprehension with interactive 3-question MCQ quizzes covering ISO 27001 Access Control, NIST Phishing & Social Engineering Defense, DPDP Act 2023, or ISO 22301 Business Continuity. Passing an assessment marks the training session as <strong>Completed (100%)</strong>.
             </p>
           </div>
         </div>
