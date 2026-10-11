@@ -1,5 +1,5 @@
 import React from "react";
-import BrandLogo from "@/assets/shield-scales-logo.png";
+import BrandLogo from "@/assets/brand-logo.png";
 
 export function ArmourLogo({ className = "w-auto h-10", showText = false, textClassName = "" }) {
   return (

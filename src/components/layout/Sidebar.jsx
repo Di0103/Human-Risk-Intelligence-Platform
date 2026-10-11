@@ -15,7 +15,7 @@ import {
   FiUser,
   FiBarChart2,
 } from "react-icons/fi";
-import BrandLogo from "@/assets/shield-scales-logo.png";
+import BrandLogo from "@/assets/brand-logo.png";
 
 export function Sidebar() {
   const { user, profile, logout } = useAuth();
@@ -69,22 +69,24 @@ export function Sidebar() {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between flex-shrink-0 min-h-screen text-slate-300 select-none print:hidden">
       {/* 1. Brand Logo Header */}
       <div>
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-800/80 bg-slate-950/40">
-          <img
-            src={BrandLogo}
-            alt="ARMOUR Brand Logo"
-            className="w-auto h-10 object-contain drop-shadow-[0_2px_8px_rgba(59,130,246,0.3)] shrink-0"
-          />
+        <div className="h-20 flex items-center gap-3.5 px-4 border-b border-slate-800/80 bg-slate-950/60">
+          <div className="w-12 h-12 flex items-center justify-center shrink-0">
+            <img
+              src={BrandLogo}
+              alt="ARMOUR Brand Logo"
+              className="w-11 h-11 object-contain drop-shadow-[0_4px_12px_rgba(37,99,235,0.45)]"
+            />
+          </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-black text-white tracking-wider uppercase font-sans">
+              <h1 className="text-base font-black text-white tracking-wider uppercase font-sans">
                 ARMOUR
               </h1>
-              <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">
+              <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">
                 GRC
               </span>
             </div>
-            <p className="text-[9px] text-slate-400 font-medium tracking-tight truncate leading-tight mt-0.5" title="Audit, Risk Mapping & Organizational Unified Remediation">
+            <p className="text-[10px] text-slate-400 font-medium tracking-tight truncate leading-tight mt-0.5" title="Audit, Risk Mapping & Organizational Unified Remediation">
               Audit, Risk Mapping &amp; Remediation
             </p>
           </div>

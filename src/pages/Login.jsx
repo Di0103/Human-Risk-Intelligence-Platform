@@ -21,7 +21,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
-import BrandLogo from "@/assets/shield-scales-logo.png";
+import BrandLogo from "@/assets/brand-logo.png";
 
 export function Login({ defaultSignUp = false }) {
   const navigate = useNavigate();

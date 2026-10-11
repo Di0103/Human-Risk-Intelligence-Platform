@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import BrandLogo from "@/assets/shield-scales-logo.png";
+import BrandLogo from "@/assets/brand-logo.png";
 import {
   FiShield,
   FiCheckCircle,
@@ -21,17 +21,19 @@ export function Header({ onOpenSecurityModal }) {
     <header className="h-16 bg-slate-900/90 backdrop-blur border-b border-slate-800 flex items-center justify-between px-6 z-10 print:hidden select-none">
       {/* Header Left: ARMOUR Brand Logo & Security Shield Telemetry */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3 pr-4 border-r border-slate-800">
-          <img
-            src={BrandLogo}
-            alt="ARMOUR Shield and Scales Brand Logo"
-            className="w-auto h-10 object-contain drop-shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-transform hover:scale-105"
-          />
+        <div className="flex items-center gap-3.5 pr-4 border-r border-slate-800">
+          <div className="w-12 h-12 flex items-center justify-center shrink-0">
+            <img
+              src={BrandLogo}
+              alt="ARMOUR Shield and Scales Brand Logo"
+              className="w-11 h-11 object-contain drop-shadow-[0_4px_12px_rgba(37,99,235,0.45)] transition-transform hover:scale-105"
+            />
+          </div>
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-wider uppercase text-white font-sans leading-none">
+            <span className="text-base font-black tracking-wider uppercase text-white font-sans leading-none">
               ARMOUR
             </span>
-            <span className="text-[9px] text-blue-400 font-mono tracking-wider leading-none mt-1 hidden sm:inline font-bold">
+            <span className="text-[10px] text-blue-400 font-mono tracking-wider leading-none mt-1 hidden sm:inline font-bold">
               GRC v1.0 • UNIFIED DEFENSE
             </span>
           </div>
