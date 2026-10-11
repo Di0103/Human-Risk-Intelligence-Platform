@@ -40,7 +40,7 @@ export function RiskRegister() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [heatmapFilter, setHeatmapFilter] = useState(null); // { likelihood, impact } or null
 
-  // Automated Risk Scoring & Vulnerability Assessment Calculator
+  // Quantitative Risk Scoring & Vulnerability Assessment Calculator
   const [calcLikelihood, setCalcLikelihood] = useState(4);
   const [calcImpact, setCalcImpact] = useState(4);
   const [calcVulnFactor, setCalcVulnFactor] = useState(1.0); // 0.8, 1.0, 1.2, 1.5
@@ -173,7 +173,7 @@ export function RiskRegister() {
     return { total, high, medium, low, avgScore };
   }, [risks]);
 
-  // Automated Matrix Calculator Dynamic Calculations
+  // Rule-Based Matrix Calculator Dynamic Calculations
   const calcInherentScore = Number(calcLikelihood) * Number(calcImpact);
   const calcAdjustedScore = Math.min(25, Math.round(calcInherentScore * Number(calcVulnFactor)));
   const calcResidualScore = Math.max(1, Math.round(calcAdjustedScore * (1 - Number(calcMitigationEff) / 100)));
@@ -611,7 +611,7 @@ export function RiskRegister() {
         </div>
       </div>
 
-      {/* 2.5 Automated Risk Scoring & Vulnerability Assessment Matrix Calculator */}
+      {/* 2.5 Rule-Based Risk Scoring & Vulnerability Assessment Matrix Calculator */}
       <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 shadow-lg bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -622,7 +622,7 @@ export function RiskRegister() {
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 Rule-Based Risk Scoring & Vulnerability Matrix Calculator
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-                  L × I Scoring Engine
+                  L × I Quantitative Review
                 </span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">

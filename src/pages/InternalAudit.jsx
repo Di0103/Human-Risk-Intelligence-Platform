@@ -416,7 +416,7 @@ export function InternalAudit() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Rule-Based Enterprise Audit & Self-Assessment Engine
+              Rule-Based Enterprise Audit & Governance Review
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               Execute structured compliance self-audits, track sequenced findings (AUDIT-001, FINDING-001), and map multi-framework statutory clauses.
@@ -554,7 +554,7 @@ export function InternalAudit() {
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase">
-                Step 4 Multi-Framework Statutory Engine
+                Step 4 Multi-Framework Statutory Review
               </span>
               <span className="text-xs text-slate-400">4 Active Legal & Regulatory Benchmarks</span>
             </div>

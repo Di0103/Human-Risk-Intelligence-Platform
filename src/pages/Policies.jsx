@@ -54,7 +54,7 @@ export const POLICY_TEMPLATES = [
     statutoryClauses: "ISO/IEC 27001:2022 Control A.5.15 (Access control), A.8.5 (Secure authentication), NIST SP 800-63B, PCI-DSS Req 8",
     version: "1.0",
     description:
-      "Enforces zero-trust access control, role-based permissions (RBAC), and multi-factor authentication (MFA) across all identity providers. Mandates 16+ character passphrases, automated session lockouts after 15 minutes of inactivity, immediate revocation upon employee termination, and mandatory quarterly privileged access audits.",
+      "Enforces zero-trust access control, role-based permissions (RBAC), and multi-factor authentication (MFA) across all identity providers. Mandates 16+ character passphrases, system-enforced session lockouts after 15 minutes of inactivity, immediate revocation upon employee termination, and mandatory quarterly privileged access audits.",
     raci: {
       responsible: "DevOps & System Administrators",
       accountable: "Head of IT Infrastructure & CTO",
@@ -2163,7 +2163,7 @@ export function Policies() {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-white uppercase tracking-wider">
-                            Policy Compliance Score Engine
+                            Policy Compliance Scoring Matrix & Checklist
                           </div>
                           <div className="text-[11px] text-slate-400">
                             Evaluated across completeness, review lifecycle, RACI ownership & control mapping

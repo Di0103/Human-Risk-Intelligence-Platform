@@ -188,7 +188,7 @@ export const AssessmentQuizModal = ({
                 </span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Deterministic scoring engine evaluating ISO 27001 & Phishing competency.
+                Deterministic scoring model evaluating ISO 27001, DPDP Act 2023 & Phishing competency.
               </p>
             </div>
           </div>

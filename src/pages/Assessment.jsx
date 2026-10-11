@@ -323,7 +323,7 @@ const Assessment = () => {
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <span>Interactive Security MCQ Assessment Engine</span>
+              <span>Interactive Security MCQ Assessment & Evaluation Checklist</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 Step 3 Standard
               </span>
