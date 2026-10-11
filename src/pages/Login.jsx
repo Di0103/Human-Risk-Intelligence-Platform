@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { isValidEmail } from "../services/authService";
@@ -60,7 +60,13 @@ export function Login({ defaultSignUp = false }) {
 
   const otpInputRefs = useRef([]);
 
-  const from = location.state?.from?.pathname || "/dashboard";
+  const targetFrom =
+    location.state?.from?.pathname ||
+    (typeof location.state?.from === "string" ? location.state.from : "/dashboard");
+  const from =
+    !targetFrom || targetFrom === "/login" || targetFrom === "/register"
+      ? "/dashboard"
+      : targetFrom;
 
   // Redirect to dashboard if session already active and valid
   useEffect(() => {
@@ -206,7 +212,7 @@ export function Login({ defaultSignUp = false }) {
         setOtpCode("");
         setSuccessMsg("Fresh 6-digit verification code dispatched!");
       }
-    } catch (e) {
+    } catch {
       setErrorMsg("Failed to resend code.");
     } finally {
       setLoading(false);
@@ -293,7 +299,7 @@ export function Login({ defaultSignUp = false }) {
           }
         }, 150);
       }
-    } catch (err) {
+    } catch {
       setErrorMsg("Google SSO authentication challenge failed.");
     } finally {
       setLoading(false);
@@ -443,10 +449,10 @@ export function Login({ defaultSignUp = false }) {
                   </p>
                 </div>
 
-                {/* Password (Optional if OTP selected) */}
+                {/* Password (Optional with OTP) */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                    Password {useOtpVerification && <span className="text-slate-500 font-normal lowercase">(optional with OTP)</span>}
+                    Password <span className="text-slate-500 font-normal lowercase">(optional with OTP)</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
