@@ -22,7 +22,19 @@ import {
   FiInfo,
   FiBookmark,
   FiAward,
+  FiDownload,
+  FiZap,
+  FiCopy,
+  FiCheck,
 } from "react-icons/fi";
+import {
+  downloadPolicyTemplate,
+  ENTERPRISE_POLICY_TEMPLATE_TEXT,
+} from "../utils/policyTemplateGenerator";
+import {
+  analyzePolicyDocument,
+  applyPolicyRemediations,
+} from "../utils/policyReviewEngine";
 import {
   resolveMultiFrameworkForPolicy,
   STATUTORY_FRAMEWORKS,
@@ -453,6 +465,18 @@ export function Policies() {
   const [readerPolicy, setReaderPolicy] = useState(null);
   const [agreedCheckbox, setAgreedCheckbox] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
+
+  // Downloadable Template & Policy Review Engine States
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isValidatorModalOpen, setIsValidatorModalOpen] = useState(false);
+  const [validatorText, setValidatorText] = useState("");
+  const [copiedTemplate, setCopiedTemplate] = useState(false);
+  const [copiedClauseId, setCopiedClauseId] = useState(null);
+
+  // Live Policy Compliance Analysis
+  const validatorAnalysis = useMemo(() => {
+    return analyzePolicyDocument(validatorText);
+  }, [validatorText]);
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -1124,6 +1148,35 @@ export function Policies() {
               )}
             </button>
           </div>
+
+          {/* Download Official Enterprise Policy Template Button */}
+          <button
+            type="button"
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold shadow-sm transition"
+            title="Download official ISO 27001, DPDP Act 2023 & ISO 22301 Word/Text policy template"
+          >
+            <FiDownload className="text-blue-400" />
+            <span>Download Template</span>
+          </button>
+
+          {/* Interactive Policy Document Review & Scoring Checker Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!validatorText && policies.length > 0) {
+                setValidatorText(policies[0].description || ENTERPRISE_POLICY_TEMPLATE_TEXT);
+              } else if (!validatorText) {
+                setValidatorText(ENTERPRISE_POLICY_TEMPLATE_TEXT);
+              }
+              setIsValidatorModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600/30 to-blue-600/30 hover:from-indigo-600/40 hover:to-blue-600/40 text-blue-300 border border-indigo-500/40 hover:border-indigo-400 rounded-xl text-xs font-semibold shadow-sm transition group"
+            title="Interactive policy review: paste text, calculate 0-100% compliance score & view actionable recommendations"
+          >
+            <FiZap className="text-amber-400 group-hover:scale-110 transition-transform" />
+            <span>Review &amp; Scoring Engine</span>
+          </button>
 
           {/* Create Button (Visible to Admins / Compliance Officers) */}
           <button
@@ -2391,6 +2444,475 @@ export function Policies() {
                   ) : (
                     "Acknowledge & Sign Now"
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: OFFICIAL DOWNLOADABLE ENTERPRISE POLICY TEMPLATE MODAL           */}
+      {/* ========================================================================= */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-750 rounded-2xl max-w-4xl w-full p-6 shadow-2xl relative space-y-5 my-8">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsTemplateModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              aria-label="Close"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-start gap-3.5 pb-4 border-b border-slate-800">
+              <div className="p-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl">
+                <FiDownload className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    ARMOUR Standard Enterprise Policy Template
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    AUDIT-READY
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Official pre-formatted governance baseline standard mapped across ISO/IEC 27001:2022, DPDP Act 2023, and ISO 22301:2019. Ready for institutional download.
+                </p>
+              </div>
+            </div>
+
+            {/* Download Action Cards */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  downloadPolicyTemplate("word");
+                  showNotification("success", "ARMOUR Word Template (.doc / .docx compatible) downloaded successfully!");
+                }}
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 hover:from-blue-900/60 hover:to-indigo-900/60 border border-blue-500/40 hover:border-blue-400 rounded-xl transition text-left group shadow-lg"
+              >
+                <div>
+                  <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-wider block mb-1">
+                    Microsoft Word Format
+                  </span>
+                  <p className="text-sm font-bold text-white group-hover:text-blue-200 transition">
+                    Download Word Template (.docx / .doc)
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Pre-styled headers, RACI tables, statutory clauses &amp; signature blocks.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                  <FiDownload className="w-5 h-5" />
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  downloadPolicyTemplate("text");
+                  showNotification("success", "ARMOUR Text Template (.txt format) downloaded successfully!");
+                }}
+                className="flex items-center justify-between p-4 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 rounded-xl transition text-left group shadow-sm"
+              >
+                <div>
+                  <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                    Plain Text / Markdown Format
+                  </span>
+                  <p className="text-sm font-bold text-white group-hover:text-emerald-200 transition">
+                    Download Text Template (.txt)
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Clean plain text version compatible with all editors and CI/CD pipelines.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-700 text-white group-hover:scale-110 transition-transform">
+                  <FiFileText className="w-5 h-5" />
+                </div>
+              </button>
+            </div>
+
+            {/* Compliance Matrix Pills */}
+            <div className="flex flex-wrap gap-2 text-[11px]">
+              <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
+                ✓ ISO/IEC 27001:2022 Controls A.5.1, A.5.15, A.8.5
+              </span>
+              <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
+                ✓ DPDP Act 2023 Sections 4, 6, 8, 11 (72h SLA &amp; Consent)
+              </span>
+              <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
+                ✓ ISO 22301:2019 RTO &lt; 4h &amp; RPO &lt; 1h DR Thresholds
+              </span>
+              <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
+                ✓ Formal RACI Accountability Matrix
+              </span>
+              <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
+                ✓ Enforced Annual Review &amp; Disciplinary Penalties
+              </span>
+            </div>
+
+            {/* Preview Box */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span className="font-semibold uppercase tracking-wider text-[11px]">Template Preview</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(ENTERPRISE_POLICY_TEMPLATE_TEXT);
+                    setCopiedTemplate(true);
+                    setTimeout(() => setCopiedTemplate(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-mono transition"
+                >
+                  {copiedTemplate ? <FiCheck className="text-emerald-400" /> : <FiCopy />}
+                  <span>{copiedTemplate ? "Copied to Clipboard!" : "Copy Full Text"}</span>
+                </button>
+              </div>
+              <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto max-h-64 leading-relaxed whitespace-pre-wrap select-all">
+                {ENTERPRISE_POLICY_TEMPLATE_TEXT}
+              </pre>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400">
+              <span>Compatible with Microsoft Word 2016+, Google Docs, LibreOffice, and PDF converters.</span>
+              <button
+                type="button"
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: INTERACTIVE POLICY REVIEW, SCORING & SUGGESTIONS ENGINE           */}
+      {/* ========================================================================= */}
+      {isValidatorModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-750 rounded-2xl max-w-6xl w-full p-6 shadow-2xl relative space-y-5 my-6 max-h-[92vh] flex flex-col">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsValidatorModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              aria-label="Close"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-tr from-amber-500/20 to-indigo-500/20 text-amber-400 border border-amber-500/30 rounded-2xl">
+                  <FiZap className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-white tracking-tight">
+                      Policy Document Review, Scoring &amp; Suggestions Engine
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      LIVE ANALYZER
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Paste or draft policy text to evaluate compliance score (0-100%) and receive actionable remediation suggestions.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                {policies.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      const selected = policies.find((p) => p.id === e.target.value);
+                      if (selected) {
+                        setValidatorText(selected.description || selected.title || "");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Load Policy from Repository...</option>
+                    {policies.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title || p.policy_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setValidatorText(ENTERPRISE_POLICY_TEMPLATE_TEXT)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  Load Template
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setValidatorText("")}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-white border border-slate-700 rounded-xl text-xs transition"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {/* Split Content Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 overflow-y-auto pr-1">
+              {/* Left Column: Text Input (7 cols) */}
+              <div className="lg:col-span-7 flex flex-col space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <label className="font-semibold uppercase tracking-wider text-[11px] text-slate-300">
+                    Policy Draft / Document Text
+                  </label>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    {validatorText.length} characters • {validatorText.split(/\s+/).filter(Boolean).length} words
+                  </span>
+                </div>
+                <textarea
+                  value={validatorText}
+                  onChange={(e) => setValidatorText(e.target.value)}
+                  placeholder="Paste or write your organization's policy draft here... (e.g. statement of purpose, scope, RACI roles, access controls, review frequency, and penalty clauses)"
+                  className="w-full flex-1 min-h-[380px] p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition leading-relaxed resize-none shadow-inner"
+                />
+
+                {/* Auto Remediation Button */}
+                {validatorAnalysis.recommendations.length > 0 && validatorText.length > 30 && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fixed = applyPolicyRemediations(validatorText, validatorAnalysis.recommendations);
+                        setValidatorText(fixed);
+                        showNotification("success", "Auto-remediation clauses applied! Compliance score elevated.");
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 transition group"
+                    >
+                      <FiZap className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+                      <span>Apply All Recommended Remediation Clauses &amp; Boost Score</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Live Analysis, Score & Suggestions (5 cols) */}
+              <div className="lg:col-span-5 space-y-4 overflow-y-auto pr-1">
+                {/* Score Card */}
+                <div className="p-4 bg-slate-850 border border-slate-750 rounded-2xl space-y-3 shadow-md bg-gradient-to-br from-slate-900 to-slate-850">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                        Compliance Quality Score
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        <span className="text-3xl font-black text-white font-mono">
+                          {validatorAnalysis.score}%
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${validatorAnalysis.badgeBg} ${validatorAnalysis.gradeColor}`}>
+                          {validatorAnalysis.grade}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block font-medium">Evaluation Tier</span>
+                      <span className="text-xs font-semibold text-slate-200">
+                        {validatorAnalysis.gradeLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 5-Pillar Score Breakdown */}
+                  <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-400">1. Purpose &amp; Scope</span>
+                        <span className="font-mono font-bold text-blue-400">{validatorAnalysis.breakdown.purposeAndScope}/20 pts</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${(validatorAnalysis.breakdown.purposeAndScope / 20) * 100}%` }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-400">2. RACI Governance &amp; Ownership</span>
+                        <span className="font-mono font-bold text-purple-400">{validatorAnalysis.breakdown.raciGovernance}/20 pts</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-purple-500 rounded-full transition-all duration-300" style={{ width: `${(validatorAnalysis.breakdown.raciGovernance / 20) * 100}%` }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-400">3. Framework Alignment (ISO 27001 / DPDP)</span>
+                        <span className="font-mono font-bold text-emerald-400">{validatorAnalysis.breakdown.statutoryAlignment}/20 pts</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${(validatorAnalysis.breakdown.statutoryAlignment / 20) * 100}%` }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-400">4. Review Lifecycle &amp; Versioning</span>
+                        <span className="font-mono font-bold text-cyan-400">{validatorAnalysis.breakdown.reviewLifecycle}/20 pts</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-cyan-500 rounded-full transition-all duration-300" style={{ width: `${(validatorAnalysis.breakdown.reviewLifecycle / 20) * 100}%` }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-400">5. Enforcement &amp; Penalties</span>
+                        <span className="font-mono font-bold text-amber-400">{validatorAnalysis.breakdown.enforcementAndPenalties}/20 pts</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 rounded-full transition-all duration-300" style={{ width: `${(validatorAnalysis.breakdown.enforcementAndPenalties / 20) * 100}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strengths Card */}
+                {validatorAnalysis.strengths.length > 0 && (
+                  <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl space-y-1.5">
+                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                      <FiCheckCircle className="w-4 h-4" />
+                      <span>Document Strengths ({validatorAnalysis.strengths.length})</span>
+                    </div>
+                    <ul className="space-y-1 text-xs text-slate-300">
+                      {validatorAnalysis.strengths.map((str, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 font-bold shrink-0">✓</span>
+                          <span>{str}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Actionable Suggestions & Recommendations */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                      <FiAlertTriangle className="text-amber-400" />
+                      <span>Actionable Recommendations ({validatorAnalysis.recommendations.length})</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Fix gaps to reach 100%
+                    </span>
+                  </div>
+
+                  {validatorAnalysis.recommendations.length === 0 ? (
+                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-center text-xs text-emerald-300 space-y-1">
+                      <FiCheckCircle className="w-6 h-6 text-emerald-400 mx-auto" />
+                      <p className="font-bold">Zero Governance Deficiencies Detected!</p>
+                      <p className="text-[11px] text-slate-400">
+                        This policy meets all institutional requirements across Purpose, RACI, Frameworks, Review, and Enforcement.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {validatorAnalysis.recommendations.map((rec) => (
+                        <div
+                          key={rec.id}
+                          className="p-3.5 bg-slate-800/80 border border-slate-700/80 rounded-xl space-y-2 text-xs hover:border-slate-600 transition"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-blue-300 border border-slate-700">
+                              {rec.category}
+                            </span>
+                            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded uppercase ${
+                              rec.severity === "high"
+                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                            }`}>
+                              {rec.severity} priority (+{rec.pointsPotential} pts)
+                            </span>
+                          </div>
+
+                          <p className="text-slate-200 font-semibold leading-snug">
+                            {rec.issue}
+                          </p>
+                          <p className="text-slate-400 text-[11px] leading-relaxed">
+                            💡 <strong>Remediation:</strong> {rec.recommendation}
+                          </p>
+
+                          {/* Suggested Clause Snippet */}
+                          {rec.suggestedClause && (
+                            <div className="mt-1.5 p-2 bg-slate-950 rounded-lg border border-slate-800 space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                <span>Suggested Clause:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(rec.suggestedClause);
+                                    setCopiedClauseId(rec.id);
+                                    setTimeout(() => setCopiedClauseId(null), 2000);
+                                  }}
+                                  className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 font-mono"
+                                >
+                                  {copiedClauseId === rec.id ? <FiCheck className="text-emerald-400" /> : <FiCopy />}
+                                  <span>{copiedClauseId === rec.id ? "Copied" : "Copy Clause"}</span>
+                                </button>
+                              </div>
+                              <pre className="text-[10px] font-mono text-slate-300 whitespace-pre-wrap leading-tight max-h-24 overflow-y-auto">
+                                {rec.suggestedClause}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs shrink-0">
+              <span className="text-slate-400">
+                Evaluation aligned with ISO/IEC 27001:2022, DPDP Act 2023, and ISO 22301:2019 audit criteria.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsValidatorModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition"
+                >
+                  Close Analyzer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsValidatorModalOpen(false);
+                    setForm((prev) => ({
+                      ...prev,
+                      title: "Validated Enterprise Policy",
+                      description: validatorText,
+                    }));
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-md shadow-blue-500/20 transition"
+                >
+                  Publish Draft to Repository →
                 </button>
               </div>
             </div>

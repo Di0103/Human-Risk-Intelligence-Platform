@@ -263,7 +263,7 @@ const Training = () => {
               Security Training & Awareness Programs
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              Coordinate human-centric security training modules, scheduled sessions, and completion tracking.
+              Coordinate ARMOUR workforce security training modules, scheduled sessions, and completion tracking.
             </p>
           </div>
         </div>

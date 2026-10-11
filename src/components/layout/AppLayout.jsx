@@ -38,11 +38,16 @@ export function AppLayout({ children }) {
         <header className="h-16 bg-slate-900/80 backdrop-blur border-b border-slate-800 flex items-center justify-between px-6 z-10 print:hidden">
           {/* Header Left: Platform Status & Active Security Shield */}
           <div className="flex items-center gap-3">
-            <div className="flex md:hidden items-center gap-2 pr-2 border-r border-slate-800">
+            <div className="flex items-center gap-2.5 pr-3 border-r border-slate-800">
               <ArmourLogo className="w-6 h-6" />
-              <span className="text-xs font-black tracking-wider uppercase text-white font-sans">
-                ARMOUR
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xs font-black tracking-wider uppercase text-white font-sans leading-none">
+                  ARMOUR
+                </span>
+                <span className="text-[9px] text-blue-400 font-mono tracking-tighter leading-none mt-0.5 hidden sm:inline">
+                  GRC v1.0
+                </span>
+              </div>
             </div>
 
             <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
